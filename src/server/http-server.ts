@@ -1,6 +1,8 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { Store } from '../store/store.js';
 import { CreateFeedbackSchema } from '../types/index.js';
+import { SyncPayloadSchema } from '../types/sync-payload.js';
+import { handleWebhook } from './webhook-handler.js';
 import { MAX_BODY_SIZE, HTTP_HOST } from '../constants.js';
 
 export interface HttpServerOptions {
@@ -80,6 +82,19 @@ export function createHttpServer({ port, store, allowedOrigins }: HttpServerOpti
         }
         const feedback = store.createFeedback(parsed.data);
         json(res, 201, feedback);
+        return;
+      }
+
+      // POST /api/webhook (widget sync)
+      if (req.method === 'POST' && pathname === '/api/webhook') {
+        const body = await parseBody(req);
+        const parsed = SyncPayloadSchema.safeParse(body);
+        if (!parsed.success) {
+          json(res, 400, { error: 'Validation failed', details: parsed.error.issues });
+          return;
+        }
+        const result = handleWebhook(store, parsed.data);
+        json(res, 200, result);
         return;
       }
 

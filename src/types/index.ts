@@ -24,6 +24,7 @@ export const FeedbackSchema = z.object({
   intent: FeedbackIntent,
   severity: FeedbackSeverity,
   status: FeedbackStatus,
+  externalId: z.string().optional(),
   createdAt: z.string().datetime(),
   resolvedAt: z.string().datetime().optional(),
   resolution: z.string().optional(),
@@ -32,7 +33,7 @@ export type Feedback = z.infer<typeof FeedbackSchema>;
 
 // Input schema for creating feedback via HTTP API
 export const CreateFeedbackSchema = z.object({
-  comment: z.string().min(1),
+  comment: z.string().min(1).max(10000),
   pageUrl: z.string().url(),
   element: z.string().optional(),
   elementPath: z.string().optional(),
@@ -40,8 +41,17 @@ export const CreateFeedbackSchema = z.object({
   intent: FeedbackIntent.default('fix'),
   severity: FeedbackSeverity.default('suggestion'),
   sessionId: z.string().optional(),
+  externalId: z.string().optional(),
 });
 export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
+
+// Input schema for partial feedback update
+export const UpdateFeedbackSchema = z.object({
+  comment: z.string().min(1).max(10000).optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'At least one field must be provided',
+});
+export type UpdateFeedbackInput = z.infer<typeof UpdateFeedbackSchema>;
 
 // --- Session ---
 

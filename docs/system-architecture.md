@@ -12,31 +12,40 @@
 ┌─────────────────────────────────────────────────────────────┐
 │                    External UI Layer                         │
 │           (Browser, Mobile, Design Tool, etc.)              │
+│                                                              │
+│   ├─ Manual submission (UI form)                            │
+│   │       ↓ HTTP /api/feedback                              │
+│   │                                                          │
+│   └─ Widget with live sync                                  │
+│           ↓ HTTP /api/webhook (SyncPayload)                 │
 └────────────────────┬────────────────────────────────────────┘
                      │
-                     │ HTTP REST API
-                     │ (JSON over HTTP)
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
 │              pro-ui-feedbacks-mcp Server                     │
 │                                                              │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │   HTTP Server (Express-like, Node.js http)           │  │
-│  │   - POST /api/feedback                               │  │
+│  │   HTTP Server (Node.js http)                         │  │
+│  │   - POST /api/feedback (manual)                       │  │
+│  │   - POST /api/webhook (widget sync)                   │  │
 │  │   - GET /api/sessions                                │  │
 │  │   - GET /api/sessions/:id                            │  │
 │  │   - GET /api/health                                  │  │
-│  └─────────────────────┬─────────────────────────────────┘  │
-│                        │                                     │
-│                        │                                     │
-│                        ▼                                     │
+│  └─────────────────┬──────────────────────────────────────┘  │
+│                    │                                         │
+│                    ├─ Validate (Zod)                         │
+│                    │                                         │
+│                    ├─ Transform (webhook handler)            │
+│                    │                                         │
+│                    ▼                                         │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │   Shared In-Memory Store                             │  │
 │  │   - Sessions Map<sessionId, Session>                │  │
 │  │   - Feedbacks Map<feedbackId, Feedback>            │  │
+│  │   - externalIdMap (widget ID → MCP ID)              │  │
 │  └──────────────┬──────────────────────────────────────┘  │
 │                 │                                           │
-│                 │                                           │
+│                 │ reads from                                │
 │                 ▼                                           │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │   MCP Server (Model Context Protocol)                │  │
@@ -62,10 +71,10 @@
 
 ## Execution Flow
 
-### Flow 1: Submit Feedback (HTTP API)
+### Flow 1: Manual Feedback Submission (HTTP API)
 
 ```
-1. External App (Browser/Mobile)
+1. External App (Browser/Mobile form)
    ↓ (HTTP POST /api/feedback)
 2. HTTP Server receives request
    ↓ (parsing + validation)
@@ -73,17 +82,53 @@
    ↓ (if valid)
 4. Store.createFeedback() called
    ↓
-5. Store auto-creates or reuses Session (by pageUrl)
+5. Store auto-creates or reuses Session (by normalized pageUrl)
    ↓
 6. Store creates Feedback with:
    - Generated UUID id
    - ISO8601 createdAt timestamp
    - Status: 'pending'
+   - No externalId
 7. Feedback persisted in-memory
    ↓
 8. HTTP response 201 Created with full Feedback object
-   ↓ (Agent polls or waits)
-9. Agent sees feedback via MCP tool
+   ↓ (Agent polls MCP or waits)
+9. Agent sees feedback via MCP get_pending_feedback tool
+```
+
+### Flow 1.5: Widget Webhook Sync (HTTP API)
+
+```
+1. UI Widget (real-time feedback collection)
+   ↓ (HTTP POST /api/webhook with SyncPayload)
+2. HTTP Server receives request
+   ↓ (parsing + validation)
+3. Zod validates SyncPayloadSchema
+   ↓ (if valid)
+4. Webhook handler routes by event type:
+
+   a) feedback.created:
+      - Transform widget feedback to CreateFeedbackInput
+      - Set externalId = widget feedback id
+      - Store.createFeedback() called
+      - externalIdMap['widget-id'] = 'mcp-uuid'
+
+   b) feedback.updated:
+      - Find MCP feedbackId via store.findByExternalId(widget-id)
+      - Store.updateFeedback(feedbackId, { comment: newContent })
+
+   c) feedback.deleted:
+      - Find MCP feedbackId via externalId
+      - Store.deleteFeedback(feedbackId)
+      - Marks feedback as 'dismissed' with reason 'Deleted via widget'
+
+   d) feedback.batch:
+      - Loop through feedbacks array, create each one
+      - Returns count of created feedbacks
+
+5. HTTP response 200 OK with { ok: true, created/updated/deleted: ... }
+   ↓ (Widget continues polling or listening)
+6. Agent sees updated feedback via MCP get_pending_feedback tool
 ```
 
 ### Flow 2: Get Pending Feedback (MCP)
@@ -176,26 +221,35 @@
 
 #### Implementation (`src/store/memory-store.ts`)
 
-**Responsibility:** In-memory data persistence.
+**Responsibility:** In-memory data persistence with widget correlation.
 
 **Data structures:**
 ```typescript
 private sessions = new Map<string, Session>();
 private feedbacks = new Map<string, Feedback>();
+private externalIdMap = new Map<string, string>(); // widget ID → MCP ID
 ```
 
 **Key methods:**
-- `createFeedback()` — Generates UUID, auto-creates session by pageUrl
+- `createFeedback()` — Generates UUID, auto-creates session by normalized pageUrl, stores externalId mapping
+- `updateFeedback()` — Partial update (comment only), preserves other fields
+- `deleteFeedback()` — Soft-delete: marks as dismissed with widget origin
 - `getPendingFeedback()` — Filters by status + optional sessionId
 - `acknowledgeFeedback()` — Transitions pending → acknowledged
 - `resolveFeedback()` — Transitions to resolved, sets timestamp
 - `dismissFeedback()` — Transitions to dismissed, sets timestamp
-- `findOrCreateSession()` — Internal helper for session lookup/creation
+- `findByExternalId()` — Lookup MCP feedbackId by widget externalId
+- `findOrCreateSession()` — Internal helper for session lookup/creation with URL normalization
+
+**URL Normalization:**
+- Strips query params and hash fragments from pageUrl
+- Enables reliable session grouping across widget reloads
 
 **Constraints:**
 - No persistence (lost on restart) — acceptable for MVP
-- Session lookup is O(n); future: index by pageUrl
+- Session lookup is O(n); future: index by normalized pageUrl
 - Returns shallow copies to prevent mutations
+- externalIdMap enables widget sync without searching feedbacks
 
 ---
 
@@ -224,7 +278,7 @@ private feedbacks = new Map<string, Feedback>();
 
 #### HTTP Server (`src/server/http-server.ts`)
 
-**Responsibility:** Create HTTP API server for feedback submission.
+**Responsibility:** Create HTTP API server for feedback submission + widget webhooks.
 
 **Exports:**
 - `createHttpServer(options): { start, close }`
@@ -238,7 +292,8 @@ private feedbacks = new Map<string, Feedback>();
 
 | Method | Path | Handler |
 |--------|------|---------|
-| POST | /api/feedback | parseBody() → validate → store.createFeedback() |
+| POST | /api/feedback | parseBody() → validate CreateFeedbackSchema → store.createFeedback() |
+| POST | /api/webhook | parseBody() → validate SyncPayloadSchema → handleWebhook() |
 | GET | /api/sessions | store.listSessions() |
 | GET | /api/sessions/:id | store.getSession(id) |
 | GET | /api/health | { status: 'ok' } |
@@ -246,15 +301,42 @@ private feedbacks = new Map<string, Feedback>();
 
 **Key features:**
 - Manual body parsing (no Express)
-- Zod validation on POST /api/feedback
+- Zod validation on all POST endpoints
 - CORS restricted to localhost by default
 - Binds to 127.0.0.1 only (secure by default)
 - 1MB request body limit
 - All errors return JSON
+- URL normalization (strips query/hash for session matching)
+- Comment length validation (max 10000 chars)
 
 **Helper functions:**
 - `json(res, status, data)` — Serialize response to JSON
 - `parseBody(req)` — Buffer request body, parse JSON
+
+#### Webhook Handler (`src/server/webhook-handler.ts`)
+
+**Responsibility:** Transform widget SyncPayload into store operations.
+
+**Exports:**
+- `handleWebhook(store: Store, payload: SyncPayload): WebhookResult`
+- `transformFeedback(fb: SyncFeedbackData, pageUrl): CreateFeedbackInput`
+
+**Event dispatch:**
+
+| Event | Action | Result |
+|-------|--------|--------|
+| `feedback.created` | Call store.createFeedback() with externalId | `{ created: 1 }` |
+| `feedback.updated` | Call store.updateFeedback() via externalId | `{ updated: true }` |
+| `feedback.deleted` | Call store.deleteFeedback() via externalId | `{ deleted: true }` |
+| `feedback.batch` | Loop, call store.createFeedback() for each | `{ created: n }` |
+
+**Mapping (widget → MCP):**
+- `feedback.content` → `CreateFeedbackInput.comment`
+- `feedback.id` → `CreateFeedbackInput.externalId`
+- `feedback.selector` → `CreateFeedbackInput.element`
+- `feedback.element.elementPath` → `CreateFeedbackInput.elementPath`
+- `page.url` → `CreateFeedbackInput.pageUrl`
+- Defaults: `intent='fix'`, `severity='suggestion'`
 
 ---
 
@@ -404,12 +486,13 @@ interface Session {
 
 ```typescript
 interface Feedback {
-  id: string                    // UUID v4, immutable
+  id: string                    // UUID v4, immutable (MCP-generated)
   sessionId: string             // References Session.id
-  comment: string               // User's feedback
+  comment: string               // User's feedback (max 10000 chars)
   element?: string              // DOM element name/class
   elementPath?: string          // CSS selector
   screenshotUrl?: string        // Optional screenshot
+  externalId?: string           // Widget feedback ID (for sync)
   pageUrl: string               // Original submission URL
   intent: 'fix' | 'change' | 'question' | 'approve'
   severity: 'blocking' | 'important' | 'suggestion'
@@ -421,7 +504,9 @@ interface Feedback {
 ```
 
 **Invariants:**
-- id, sessionId, comment, pageUrl are immutable
+- id, sessionId, pageUrl are immutable
+- comment immutable via API (only widget webhook can update)
+- externalId immutable after creation
 - status transitions: pending → (acknowledged) → (resolved | dismissed)
 - Terminal statuses: resolved, dismissed (can't reopen)
 - resolvedAt set when status becomes terminal
@@ -439,6 +524,12 @@ resolved       or       dismissed
   terminal              terminal
 (immutable)           (immutable)
 ```
+
+**Widget sync (externalId):**
+- Widget feedback ID stored as externalId
+- externalIdMap maintains: externalId → feedbackId
+- Enables widget update/delete via external ID lookup
+- Widget deletions mark feedback as dismissed with origin note
 
 ---
 

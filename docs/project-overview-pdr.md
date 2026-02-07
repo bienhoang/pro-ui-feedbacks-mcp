@@ -74,6 +74,39 @@
 
 ---
 
+### FR-1.5: Widget Webhook Sync (HTTP API) [Phase 1]
+
+**Requirement:** Widget must sync feedback changes to MCP via webhook.
+
+**Acceptance Criteria:**
+- `POST /api/webhook` accepts SyncPayload from widget
+- Supports events: feedback.created, feedback.updated, feedback.deleted, feedback.batch
+- SyncPayload includes: event, timestamp, page (url, pathname, viewport), feedback/feedbacks
+- Feedback data includes: id, content, selector, pageX, pageY, createdAt, element, areaData
+- Widget ID stored as externalId for correlation
+- Updates via externalId lookup (no direct MCP ID needed from widget)
+- Deletions mark feedback as dismissed with "Deleted via widget" note
+- Comment max 10000 characters enforced
+- URL normalization: strips query/hash for session matching
+- Response: { ok: true, created/updated/deleted: ... }
+- HTTP 200 (success), 400 (validation), 500 (error)
+
+---
+
+### FR-2.5: Store CRUD & Widget Correlation [Phase 1]
+
+**Requirement:** Store must support feedback updates and widget ID correlation.
+
+**Acceptance Criteria:**
+- `updateFeedback(feedbackId, fields)` updates comment (only mutable field via API)
+- `deleteFeedback(feedbackId)` marks as dismissed (soft delete)
+- `findByExternalId(externalId)` returns MCP feedbackId for widget sync
+- externalIdMap maintains widget ID → MCP ID mapping
+- Store enforces comment max length (10000 chars)
+- URL normalization enabled for session matching
+
+---
+
 ### FR-3: MCP Tool: List Sessions
 
 **Requirement:** Agents must list active feedback sessions.
@@ -337,7 +370,7 @@
 
 ## Roadmap
 
-### v0.1.0 (Current)
+### v0.1.0 (Phase 0 — Core)
 
 - [x] HTTP API for feedback submission
 - [x] MCP tools for agents
@@ -345,7 +378,19 @@
 - [x] In-memory store
 - [x] Basic CLI
 
-### v0.2.0 (Planned)
+### v0.1.1 (Phase 1 — Widget Integration) [Current]
+
+- [x] POST /api/webhook for widget sync
+- [x] SyncPayload schemas (Zod validation)
+- [x] Webhook handler (event dispatch)
+- [x] Store CRUD: updateFeedback, deleteFeedback, findByExternalId
+- [x] Widget ID correlation via externalId & externalIdMap
+- [x] Comment max 10000 chars validation
+- [x] URL normalization for session matching
+- [x] Feedback.updated and feedback.deleted events
+- [x] Batch feedback creation (feedback.batch event)
+
+### v0.2.0 (Planned — Persistence)
 
 - [ ] SQLite persistence
 - [ ] Search/filter feedback
@@ -419,7 +464,7 @@
 
 ## Success Criteria
 
-### MVP (v0.1.0)
+### Phase 0 (v0.1.0) — Core
 
 - [x] HTTP API receives feedback
 - [x] MCP tools expose feedback to agents
@@ -429,7 +474,18 @@
 - [x] Zero external access (localhost only)
 - [x] npm package published
 
-### Next Phase (v0.2.0)
+### Phase 1 (v0.1.1) — Widget Integration [Current]
+
+- [x] Webhook endpoint receives SyncPayload
+- [x] Widget feedback events processed (create, update, delete, batch)
+- [x] externalId correlation working
+- [x] Comment validation (max 10000 chars)
+- [x] URL normalization enables reliable session grouping
+- [x] Store CRUD ops implemented & tested
+- [x] Webhook tests passing
+- [x] Integration tests: widget → webhook → store → MCP tool
+
+### Next Phase (v0.2.0) — Persistence
 
 - [ ] Persistence (SQLite)
 - [ ] Advanced queries
@@ -489,6 +545,31 @@ File locations:
 
 ---
 
+## Phase 1 Summary (Widget-to-MCP Integration)
+
+**Phase 1 enables real-time widget-to-MCP feedback synchronization.**
+
+### What's New
+- **Webhook endpoint** (`POST /api/webhook`) accepts widget SyncPayload
+- **Event-driven dispatch**: feedback.created, feedback.updated, feedback.deleted, feedback.batch
+- **Widget correlation**: externalId maps widget feedback to MCP feedback
+- **CRUD expansion**: updateFeedback, deleteFeedback, findByExternalId
+- **Data validation**: SyncPayload schemas + comment max 10000 chars
+- **Session grouping**: URL normalization (strips query/hash)
+
+### Developer Impact
+- Widget developers can integrate via single endpoint
+- Zero knowledge of MCP IDs needed (externalId handles lookup)
+- Soft deletes preserve feedback history (dismissed state)
+- Real-time MCP visibility into widget feedback
+
+### Next Priorities
+1. **v0.2.0**: SQLite persistence for production readiness
+2. **Batch optimizations**: Leverage feedback.batch event for high-throughput scenarios
+3. **Advanced queries**: Search/filter by timestamp, intent, severity
+
+---
+
 Generated: 2026-02-08
-Version: 0.1.0
-Status: MVP Complete
+Version: 0.1.1
+Status: Phase 1 Complete (Widget Integration)

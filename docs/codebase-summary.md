@@ -53,11 +53,16 @@
 │  Client App (Browser/Mobile)                │
 │  - UI Feedback Widget                       │
 └──────────────┬──────────────────────────────┘
-               │ HTTP POST /api/feedback
-               ▼
+               │
+               ├─ HTTP POST /api/feedback (manual)
+               │
+               └─ HTTP POST /api/webhook (widget sync)
+                       │ SyncPayload
+                       ▼
 ┌──────────────────────────────────────────────┐
 │  HTTP Server (port 4747 by default)          │
 │  - /api/feedback (POST)                      │
+│  - /api/webhook (POST)                       │
 │  - /api/sessions (GET)                       │
 │  - /api/sessions/:id (GET)                   │
 │  - /api/health (GET)                         │
@@ -69,6 +74,7 @@
 │  Feedback Store (in-memory)                  │
 │  - Sessions (Map<sessionId, Session>)        │
 │  - Feedbacks (Map<feedbackId, Feedback>)    │
+│  - externalIdMap (widget ID → MCP ID)        │
 └──────────────┬───────────────────────────────┘
                │
                │ reads from
@@ -95,13 +101,16 @@
 
 ```
 src/
-├── types/index.ts          # Zod schemas (Feedback, Session, CreateFeedback)
+├── types/
+│   ├── index.ts            # Zod schemas (Feedback, Session, CreateFeedback, UpdateFeedback)
+│   └── sync-payload.ts     # SyncPayload schema for widget integration
 ├── store/
-│   ├── store.ts            # Interface definition
-│   └── memory-store.ts     # In-memory implementation
+│   ├── store.ts            # Interface definition (+ CRUD, externalId lookup)
+│   └── memory-store.ts     # In-memory implementation (+ externalIdMap)
 ├── server/
 │   ├── mcp-server.ts       # MCP setup + tool registration
-│   └── http-server.ts      # HTTP API endpoints
+│   ├── http-server.ts      # HTTP API endpoints (+ /api/webhook)
+│   └── webhook-handler.ts  # Transform widget payloads to MCP feedback
 ├── tools/                  # MCP tool implementations (5 files)
 │   ├── list-sessions.ts
 │   ├── get-pending-feedback.ts
@@ -110,7 +119,9 @@ src/
 │   └── dismiss-feedback.ts
 ├── commands/
 │   ├── init.ts             # Auto-configure agents
-│   └── doctor.ts           # Verify setup
+│   ├── doctor.ts           # Verify setup
+│   └── agent-configs.ts    # Agent config paths
+├── constants.ts            # DEFAULT_WEBHOOK_PATH
 ├── cli.ts                  # Command routing
 └── index.ts                # Public API (startServer)
 ```
@@ -119,7 +130,9 @@ src/
 
 ## Core Modules
 
-### 1. Types & Validation (`src/types/index.ts`)
+### 1. Types & Validation (`src/types/`)
+
+#### `index.ts` — Domain Types
 
 **Zod schemas define all domain types:**
 
@@ -129,7 +142,8 @@ src/
 | `FeedbackSeverity` | enum: blocking \| important \| suggestion |
 | `FeedbackStatus` | enum: pending \| acknowledged \| resolved \| dismissed |
 | `Feedback` | Full feedback object with metadata |
-| `CreateFeedbackSchema` | Input validation for HTTP POST |
+| `CreateFeedbackSchema` | Input validation for HTTP POST /api/feedback |
+| `UpdateFeedbackSchema` | Input validation for PATCH operations |
 | `Session` | Feedback collection for a page/URL |
 | `SessionWithFeedbacks` | Session + array of related feedbacks |
 
@@ -139,11 +153,12 @@ src/
 interface Feedback {
   id: string                    // UUID
   sessionId: string             // Groups by pageUrl
-  comment: string               // User's feedback text
+  comment: string               // User's feedback text (max 10000 chars)
   pageUrl: string               // Required, URL validated
   element?: string              // DOM element description
   elementPath?: string          // Selector path (e.g., ".btn-primary")
   screenshotUrl?: string        // Optional screenshot
+  externalId?: string           // Widget feedback ID (for correlation)
   intent: FeedbackIntent        // What to do: fix/change/question/approve
   severity: FeedbackSeverity    // Priority: blocking/important/suggestion
   status: FeedbackStatus        // Lifecycle: pending→acknowledged→resolved/dismissed
@@ -151,6 +166,24 @@ interface Feedback {
   resolvedAt?: ISO8601 datetime
   resolution?: string           // Summary if resolved/dismissed
 }
+```
+
+#### `sync-payload.ts` — Widget Integration
+
+**Zod schemas for webhook payloads from UI widget:**
+
+| Schema | Purpose |
+|--------|---------|
+| `SyncElementDataSchema` | DOM element metadata (selector, className, boundingBox, a11y) |
+| `AreaDataSchema` | Highlighted area (center, size, element count) |
+| `SyncFeedbackDataSchema` | Single feedback from widget (content, selector, position) |
+| `SyncPayloadSchema` | Top-level webhook payload (event, page, feedbacks) |
+
+**Events:**
+- `feedback.created` — New feedback submitted
+- `feedback.updated` — Feedback content changed
+- `feedback.deleted` — Feedback removed
+- `feedback.batch` — Multiple feedbacks at once
 
 interface Session {
   id: string                    // UUID
@@ -166,7 +199,7 @@ interface Session {
 
 #### `src/store/store.ts`
 
-Defines abstract interface. Implementations:
+Abstract interface for feedback persistence:
 
 ```typescript
 interface Store {
@@ -176,10 +209,15 @@ interface Store {
 
   // Feedback CRUD + transitions
   createFeedback(input: CreateFeedbackInput): Feedback
+  updateFeedback(feedbackId: string, fields: UpdateFeedbackInput): Feedback | null
+  deleteFeedback(feedbackId: string): Feedback | null
   getPendingFeedback(sessionId?: string): Feedback[]
   acknowledgeFeedback(feedbackId: string): Feedback | null
   resolveFeedback(feedbackId: string, resolution: string): Feedback | null
   dismissFeedback(feedbackId: string, reason: string): Feedback | null
+
+  // Widget correlation
+  findByExternalId(externalId: string): string | undefined
 }
 ```
 
@@ -187,19 +225,21 @@ interface Store {
 
 In-memory implementation:
 
-- **Data structures:** Two Maps (sessions, feedbacks)
+- **Data structures:** Sessions Map, Feedbacks Map, externalIdMap (widget ID → MCP ID)
 - **Session auto-creation:** POST /api/feedback with new pageUrl auto-creates session
-- **Session lookup:** Matches by pageUrl, reuses if exists
-- **Status transitions:** Enforces pending→ (acknowledged, resolved, dismissed)
+- **Session lookup:** Matches by pageUrl (with query/hash normalization), reuses if exists
+- **CRUD operations:** Create, read, update, delete with validation
+- **Status transitions:** pending→ (acknowledged, resolved, dismissed)
+- **Widget correlation:** Maps widget externalId to MCP feedback id for update/delete
 - **Read-only returns:** Methods return shallow copies to prevent mutations
 
-**Example flow:**
+**Example flow (widget feedback):**
 ```
-POST /api/feedback { pageUrl: "https://example.com/page" }
-→ findOrCreateSession() checks Map for matching pageUrl
-→ If found, reuses sessionId
-→ If not found, generates UUID, stores Session, returns sessionId
-→ Creates Feedback with that sessionId
+POST /api/webhook { event: 'feedback.created', feedback: { id: 'widget-123', ... } }
+→ transformFeedback() converts to CreateFeedbackInput with externalId='widget-123'
+→ store.createFeedback() generates MCP UUID, stores in feedbacks Map
+→ externalIdMap['widget-123'] = 'mcp-uuid'
+→ Later updates/deletes use externalId to find MCP feedback
 ```
 
 ---
@@ -237,7 +277,8 @@ Node.js `http.Server` (no Express — minimal footprint):
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | /api/feedback | Submit new feedback |
+| POST | /api/feedback | Submit manual feedback |
+| POST | /api/webhook | Widget sync payloads (SyncPayload) |
 | GET | /api/sessions | List all sessions |
 | GET | /api/sessions/:id | Get session + its feedbacks |
 | GET | /api/health | Health check |
@@ -247,11 +288,14 @@ Node.js `http.Server` (no Express — minimal footprint):
 
 - **CORS:** Restricted to localhost origins by default (`http://localhost:*`, `http://127.0.0.1:*`)
 - **Body parsing:** Manual (no body-parser), limited to 1MB
-- **Validation:** Zod schema validation on POST /api/feedback
+- **Validation:** Zod schema validation on POST endpoints
+- **URL normalization:** Strips query/hash from pageUrl for session matching
+- **Comment validation:** Max 10000 characters enforced
 - **Binding:** Localhost only (127.0.0.1, no external access)
 - **Port:** Configurable, default 4747
+- **Webhook path:** Configurable via DEFAULT_WEBHOOK_PATH constant
 
-**Example request:**
+**Manual feedback example:**
 
 ```bash
 curl -X POST http://127.0.0.1:4747/api/feedback \
@@ -264,6 +308,59 @@ curl -X POST http://127.0.0.1:4747/api/feedback \
     "severity": "important"
   }'
 ```
+
+**Widget webhook example:**
+
+```bash
+curl -X POST http://127.0.0.1:4747/api/webhook \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "event": "feedback.created",
+    "timestamp": 1707383400000,
+    "page": {
+      "url": "https://example.com/checkout",
+      "pathname": "/checkout",
+      "viewport": { "width": 1920, "height": 1080 }
+    },
+    "feedback": {
+      "id": "widget-feedback-123",
+      "stepNumber": 1,
+      "content": "Button color should be blue",
+      "selector": "button.submit",
+      "pageX": 850,
+      "pageY": 200,
+      "createdAt": 1707383400000,
+      "element": { "selector": "button.submit", "tagName": "button", "className": "submit cta" }
+    }
+  }'
+```
+
+---
+
+### 4.5. Webhook Handler (`src/server/webhook-handler.ts`)
+
+Transforms widget SyncPayload into MCP store operations:
+
+```typescript
+function transformFeedback(fb: SyncFeedbackData, pageUrl: string): CreateFeedbackInput
+function handleWebhook(store: Store, payload: SyncPayload): WebhookResult
+```
+
+**Event handling:**
+
+| Event | Action | Result |
+|-------|--------|--------|
+| `feedback.created` | Create new feedback | `{ ok: true, created: 1 }` |
+| `feedback.updated` | Update comment via externalId | `{ ok: true, updated: true }` |
+| `feedback.deleted` | Mark as dismissed via externalId | `{ ok: true, deleted: true }` |
+| `feedback.batch` | Create multiple feedbacks | `{ ok: true, created: n }` |
+
+**Transformation:**
+- Widget `content` → MCP `comment`
+- Widget `id` → MCP `externalId`
+- Widget `selector` → MCP `element`
+- Page `url` → MCP `pageUrl`
+- Defaults: intent=fix, severity=suggestion
 
 ---
 
@@ -466,19 +563,29 @@ dist/
 
 ```
 src/
-├── types/index.ts              # 59 lines — Zod schemas
-├── store/store.ts              # 23 lines — Interface
-├── store/memory-store.ts       # 110 lines — Implementation
-├── server/mcp-server.ts        # 36 lines — Setup + tool registration
-├── server/http-server.ts       # 143 lines — HTTP API
-├── tools/list-sessions.ts      # 24 lines — Tool
-├── tools/get-pending-feedback.ts  # ~20 lines — Tool
-├── tools/acknowledge-feedback.ts  # ~20 lines — Tool
-├── tools/resolve-feedback.ts      # ~20 lines — Tool
-├── tools/dismiss-feedback.ts      # ~20 lines — Tool
-├── commands/init.ts            # 85 lines — Auto-config
-├── commands/doctor.ts          # ? lines — TBD
-├── cli.ts                       # 44 lines — Router
+├── types/
+│   ├── index.ts                # ~54 lines — Zod schemas (Feedback, Session, UpdateFeedback)
+│   └── sync-payload.ts         # ~64 lines — Widget SyncPayload schemas
+├── store/
+│   ├── store.ts                # ~29 lines — Interface (+ updateFeedback, deleteFeedback, findByExternalId)
+│   └── memory-store.ts         # ~130 lines — Implementation (+ externalIdMap, CRUD)
+├── server/
+│   ├── mcp-server.ts           # 36 lines — Setup + tool registration
+│   ├── http-server.ts          # ~180 lines — HTTP API (+ /api/webhook route)
+│   └── webhook-handler.ts      # 56 lines — Transform SyncPayload → MCP feedback
+├── tools/
+│   ├── list-sessions.ts        # 24 lines — Tool
+│   ├── get-pending-feedback.ts # ~20 lines — Tool
+│   ├── acknowledge-feedback.ts # ~20 lines — Tool
+│   ├── resolve-feedback.ts     # ~20 lines — Tool
+│   ├── dismiss-feedback.ts     # ~20 lines — Tool
+│   └── tool-helpers.ts         # ~30 lines — Shared formatting
+├── commands/
+│   ├── init.ts                 # 85 lines — Auto-config agents
+│   ├── doctor.ts               # TBD — Setup verification
+│   └── agent-configs.ts        # ~50 lines — Agent config paths
+├── constants.ts                # ~5 lines — DEFAULT_WEBHOOK_PATH
+├── cli.ts                       # 44 lines — Command routing
 └── index.ts                     # 38 lines — Public API
 
 tests/
@@ -533,16 +640,37 @@ await startServer({ port: 4747, mcpOnly: false });
 
 ---
 
+## Phase 1: Widget-to-MCP Integration (Completed)
+
+**Phase 1 adds:** Webhook endpoint + widget synchronization
+
+**New components:**
+- `POST /api/webhook` — Receives SyncPayload from UI widget
+- `SyncPayload` schemas — Validate widget feedback data (element info, coordinates, events)
+- `webhook-handler.ts` — Transform widget feedback to MCP feedback
+- Store CRUD expansion — `updateFeedback()`, `deleteFeedback()`, `findByExternalId()`
+- `externalIdMap` — Map widget IDs to MCP IDs for synchronization
+- Comment validation — Max 10000 characters
+- URL normalization — Strip query/hash for session matching
+
+**Enables:**
+- Widget feedback auto-synced to MCP (real-time sync)
+- Widget can update/delete feedback via externalId
+- MCP agents see widget feedback immediately
+
+---
+
 ## Future Enhancements
 
-- SQLite/Postgres store adapter
-- Persistence across restarts
+- Batch webhook operations (feedback.batch event)
+- SQLite/Postgres store adapter for persistence
 - Feedback search/filtering
-- Webhook callbacks
+- Advanced webhook callbacks (on resolve/dismiss)
 - Rate limiting
 - Auth/API keys
 - Dashboard UI for feedback review
 - Export to JSON/CSV
+- Feedback analytics & heatmaps
 
 ---
 
