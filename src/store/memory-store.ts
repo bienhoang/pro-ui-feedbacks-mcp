@@ -8,6 +8,10 @@ import type {
   UpdateFeedbackInput,
 } from '../types/index.js';
 
+function isTerminalStatus(status: string): boolean {
+  return status === 'resolved' || status === 'dismissed';
+}
+
 /**
  * In-memory store implementation.
  * Data is lost on process restart — acceptable for MVP.
@@ -68,7 +72,7 @@ export class MemoryStore implements Store {
   deleteFeedback(feedbackId: string): Feedback | null {
     const feedback = this.feedbacks.get(feedbackId);
     if (!feedback) return null;
-    if (feedback.status === 'resolved' || feedback.status === 'dismissed') return null;
+    if (isTerminalStatus(feedback.status)) return null;
     feedback.status = 'dismissed';
     feedback.resolution = 'Deleted via widget';
     feedback.resolvedAt = new Date().toISOString();
@@ -100,7 +104,7 @@ export class MemoryStore implements Store {
   resolveFeedback(feedbackId: string, resolution: string): Feedback | null {
     const feedback = this.feedbacks.get(feedbackId);
     if (!feedback) return null;
-    if (feedback.status === 'resolved' || feedback.status === 'dismissed') return null;
+    if (isTerminalStatus(feedback.status)) return null;
 
     feedback.status = 'resolved';
     feedback.resolution = resolution;
@@ -111,7 +115,7 @@ export class MemoryStore implements Store {
   dismissFeedback(feedbackId: string, reason: string): Feedback | null {
     const feedback = this.feedbacks.get(feedbackId);
     if (!feedback) return null;
-    if (feedback.status === 'resolved' || feedback.status === 'dismissed') return null;
+    if (isTerminalStatus(feedback.status)) return null;
 
     feedback.status = 'dismissed';
     feedback.resolution = reason;

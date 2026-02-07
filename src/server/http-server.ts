@@ -3,13 +3,83 @@ import type { Store } from '../store/store.js';
 import { CreateFeedbackSchema } from '../types/index.js';
 import { SyncPayloadSchema } from '../types/sync-payload.js';
 import { handleWebhook } from './webhook-handler.js';
-import { MAX_BODY_SIZE, HTTP_HOST } from '../constants.js';
+import { MAX_BODY_SIZE, HTTP_HOST, DEFAULT_WEBHOOK_PATH } from '../constants.js';
 
 export interface HttpServerOptions {
   port: number;
   store: Store;
   allowedOrigins?: string[];
 }
+
+// --- Route Handlers ---
+
+function setCorsHeaders(
+  req: IncomingMessage, res: ServerResponse,
+  origins: string[], port: number,
+): void {
+  const requestOrigin = req.headers.origin ?? '';
+  const isAllowed = origins.some((pattern) => {
+    if (pattern.includes('*')) {
+      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+      return regex.test(requestOrigin);
+    }
+    return pattern === requestOrigin;
+  });
+  res.setHeader(
+    'Access-Control-Allow-Origin',
+    isAllowed ? requestOrigin : origins[0].replace('*', String(port)),
+  );
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+function handleHealth(res: ServerResponse): void {
+  json(res, 200, { status: 'ok' });
+}
+
+function handleSessions(res: ServerResponse, store: Store, pathname: string): void {
+  if (pathname === '/api/sessions') {
+    json(res, 200, store.listSessions());
+    return;
+  }
+
+  const sessionMatch = pathname.match(/^\/api\/sessions\/(.+)$/);
+  if (sessionMatch) {
+    const session = store.getSession(sessionMatch[1]);
+    if (!session) {
+      json(res, 404, { error: 'Session not found' });
+      return;
+    }
+    json(res, 200, session);
+    return;
+  }
+
+  json(res, 404, { error: 'Not found' });
+}
+
+async function handleFeedbackCreate(req: IncomingMessage, res: ServerResponse, store: Store): Promise<void> {
+  const body = await parseBody(req);
+  const parsed = CreateFeedbackSchema.safeParse(body);
+  if (!parsed.success) {
+    json(res, 400, { error: 'Validation failed', details: parsed.error.issues });
+    return;
+  }
+  const feedback = store.createFeedback(parsed.data);
+  json(res, 201, feedback);
+}
+
+async function handleWebhookRoute(req: IncomingMessage, res: ServerResponse, store: Store): Promise<void> {
+  const body = await parseBody(req);
+  const parsed = SyncPayloadSchema.safeParse(body);
+  if (!parsed.success) {
+    json(res, 400, { error: 'Validation failed', details: parsed.error.issues });
+    return;
+  }
+  const result = handleWebhook(store, parsed.data);
+  json(res, result.ok ? 200 : 400, result);
+}
+
+// --- Server Factory ---
 
 /**
  * Create HTTP API server for receiving feedback from external sources.
@@ -19,86 +89,17 @@ export function createHttpServer({ port, store, allowedOrigins }: HttpServerOpti
   const origins = allowedOrigins ?? ['http://localhost:*', 'http://127.0.0.1:*'];
 
   const server = createServer(async (req, res) => {
-    // CORS headers — restrict to localhost origins by default
-    const requestOrigin = req.headers.origin ?? '';
-    const isAllowed = origins.some((pattern) => {
-      if (pattern.includes('*')) {
-        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
-        return regex.test(requestOrigin);
-      }
-      return pattern === requestOrigin;
-    });
-    res.setHeader(
-      'Access-Control-Allow-Origin',
-      isAllowed ? requestOrigin : origins[0].replace('*', String(port))
-    );
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setCorsHeaders(req, res, origins, port);
 
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
+    if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
 
-    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
-    const pathname = url.pathname;
+    const pathname = new URL(req.url ?? '/', `http://localhost:${port}`).pathname;
 
     try {
-      // GET /api/health
-      if (req.method === 'GET' && pathname === '/api/health') {
-        json(res, 200, { status: 'ok' });
-        return;
-      }
-
-      // GET /api/sessions
-      if (req.method === 'GET' && pathname === '/api/sessions') {
-        json(res, 200, store.listSessions());
-        return;
-      }
-
-      // GET /api/sessions/:id
-      const sessionMatch = pathname.match(/^\/api\/sessions\/(.+)$/);
-      if (req.method === 'GET' && sessionMatch) {
-        const session = store.getSession(sessionMatch[1]);
-        if (!session) {
-          json(res, 404, { error: 'Session not found' });
-          return;
-        }
-        json(res, 200, session);
-        return;
-      }
-
-      // POST /api/feedback
-      if (req.method === 'POST' && pathname === '/api/feedback') {
-        const body = await parseBody(req);
-        const parsed = CreateFeedbackSchema.safeParse(body);
-        if (!parsed.success) {
-          json(res, 400, {
-            error: 'Validation failed',
-            details: parsed.error.issues,
-          });
-          return;
-        }
-        const feedback = store.createFeedback(parsed.data);
-        json(res, 201, feedback);
-        return;
-      }
-
-      // POST /api/webhook (widget sync)
-      if (req.method === 'POST' && pathname === '/api/webhook') {
-        const body = await parseBody(req);
-        const parsed = SyncPayloadSchema.safeParse(body);
-        if (!parsed.success) {
-          json(res, 400, { error: 'Validation failed', details: parsed.error.issues });
-          return;
-        }
-        const result = handleWebhook(store, parsed.data);
-        json(res, result.ok ? 200 : 400, result);
-        return;
-      }
-
-      // 404 fallback
+      if (req.method === 'GET' && pathname === '/api/health') return handleHealth(res);
+      if (req.method === 'GET' && pathname.startsWith('/api/sessions')) return handleSessions(res, store, pathname);
+      if (req.method === 'POST' && pathname === '/api/feedback') return handleFeedbackCreate(req, res, store);
+      if (req.method === 'POST' && pathname === DEFAULT_WEBHOOK_PATH) return handleWebhookRoute(req, res, store);
       json(res, 404, { error: 'Not found' });
     } catch (err) {
       console.error('[HTTP] Error:', err);

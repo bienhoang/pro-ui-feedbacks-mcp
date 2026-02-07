@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { BoundingBoxSchema, AccessibilitySchema, ViewportSchema, AreaDataSchema } from './shared-schemas.js';
+
+// Re-export shared schemas for backward compat
+export { BoundingBoxSchema, AccessibilitySchema, ViewportSchema, AreaDataSchema } from './shared-schemas.js';
 
 // --- Enums ---
 
@@ -18,34 +22,21 @@ export const ElementSummarySchema = z.object({
   tagName: z.string(),
   elementPath: z.string().optional(),
   elementDescription: z.string().optional(),
-  boundingBox: z.object({
-    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
-  }).optional(),
+  boundingBox: BoundingBoxSchema.optional(),
 });
 export type ElementSummary = z.infer<typeof ElementSummarySchema>;
 
 export const FeedbackMetadataSchema = z.object({
-  boundingBox: z.object({
-    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
-  }).optional(),
-  accessibility: z.object({
-    role: z.string().optional(),
-    label: z.string().optional(),
-  }).optional(),
+  boundingBox: BoundingBoxSchema.optional(),
+  accessibility: AccessibilitySchema.optional(),
   elementDescription: z.string().optional(),
   fullPath: z.string().optional(),
   stepNumber: z.number().optional(),
   pageCoords: z.object({ x: z.number(), y: z.number() }).optional(),
-  areaData: z.object({
-    centerX: z.number(),
-    centerY: z.number(),
-    width: z.number(),
-    height: z.number(),
-    elementCount: z.number(),
-  }).optional(),
+  areaData: AreaDataSchema.optional(),
   isAreaOnly: z.boolean().optional(),
   elements: z.array(ElementSummarySchema).optional(),
-  viewport: z.object({ width: z.number(), height: z.number() }).optional(),
+  viewport: ViewportSchema.optional(),
 }).optional();
 
 export type FeedbackMetadata = z.infer<typeof FeedbackMetadataSchema>;

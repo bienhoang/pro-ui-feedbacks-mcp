@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { BoundingBoxSchema, AccessibilitySchema, ViewportSchema, AreaDataSchema } from './shared-schemas.js';
+
+// Re-export for backward compat
+export { AreaDataSchema } from './shared-schemas.js';
 
 // --- Element data from widget ---
 
@@ -10,21 +14,8 @@ export const SyncElementDataSchema = z.object({
   elementPath: z.string().optional(),
   fullPath: z.string().optional(),
   elementDescription: z.string().optional(),
-  boundingBox: z.object({
-    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
-  }).optional(),
-  accessibility: z.object({
-    role: z.string().optional(),
-    label: z.string().optional(),
-  }).optional(),
-});
-
-export const AreaDataSchema = z.object({
-  centerX: z.number(),
-  centerY: z.number(),
-  width: z.number(),
-  height: z.number(),
-  elementCount: z.number(),
+  boundingBox: BoundingBoxSchema.optional(),
+  accessibility: AccessibilitySchema.optional(),
 });
 
 // --- Feedback data within sync payload ---
@@ -51,7 +42,7 @@ export const SyncPayloadSchema = z.object({
   page: z.object({
     url: z.string().url(),
     pathname: z.string(),
-    viewport: z.object({ width: z.number(), height: z.number() }),
+    viewport: ViewportSchema,
   }),
   feedback: SyncFeedbackDataSchema.optional(),
   feedbacks: z.array(SyncFeedbackDataSchema).optional(),

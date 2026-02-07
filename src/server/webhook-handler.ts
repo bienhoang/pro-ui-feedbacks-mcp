@@ -11,6 +11,30 @@ export interface WebhookResult {
   error?: string;
 }
 
+function buildMetadata(
+  fb: SyncFeedbackData,
+  viewport?: { width: number; height: number },
+) {
+  return {
+    boundingBox: fb.element?.boundingBox,
+    accessibility: fb.element?.accessibility,
+    elementDescription: fb.element?.elementDescription,
+    fullPath: fb.element?.fullPath,
+    stepNumber: fb.stepNumber,
+    pageCoords: { x: fb.pageX, y: fb.pageY },
+    areaData: fb.areaData,
+    isAreaOnly: fb.isAreaOnly,
+    elements: fb.elements?.map((el) => ({
+      selector: el.selector,
+      tagName: el.tagName,
+      elementPath: el.elementPath,
+      elementDescription: el.elementDescription,
+      boundingBox: el.boundingBox,
+    })),
+    viewport,
+  };
+}
+
 /** Transform widget feedback data into MCP CreateFeedbackInput with rich metadata. */
 function transformFeedback(
   fb: SyncFeedbackData,
@@ -25,24 +49,7 @@ function transformFeedback(
     externalId: fb.id,
     intent: 'fix',
     severity: 'suggestion',
-    metadata: {
-      boundingBox: fb.element?.boundingBox,
-      accessibility: fb.element?.accessibility,
-      elementDescription: fb.element?.elementDescription,
-      fullPath: fb.element?.fullPath,
-      stepNumber: fb.stepNumber,
-      pageCoords: { x: fb.pageX, y: fb.pageY },
-      areaData: fb.areaData,
-      isAreaOnly: fb.isAreaOnly,
-      elements: fb.elements?.map((el) => ({
-        selector: el.selector,
-        tagName: el.tagName,
-        elementPath: el.elementPath,
-        elementDescription: el.elementDescription,
-        boundingBox: el.boundingBox,
-      })),
-      viewport,
-    },
+    metadata: buildMetadata(fb, viewport),
   };
 }
 
