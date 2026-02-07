@@ -94,7 +94,7 @@ export function createHttpServer({ port, store, allowedOrigins }: HttpServerOpti
           return;
         }
         const result = handleWebhook(store, parsed.data);
-        json(res, 200, result);
+        json(res, result.ok ? 200 : 400, result);
         return;
       }
 

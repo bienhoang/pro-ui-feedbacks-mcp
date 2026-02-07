@@ -231,4 +231,118 @@ describe('MemoryStore', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('updateFeedback', () => {
+    it('should update comment', () => {
+      const feedback = store.createFeedback({
+        comment: 'Original',
+        pageUrl: 'https://example.com/page',
+      });
+      const result = store.updateFeedback(feedback.id, { comment: 'Updated' });
+      expect(result).not.toBeNull();
+      expect(result!.comment).toBe('Updated');
+    });
+
+    it('should return null for unknown id', () => {
+      const result = store.updateFeedback('nonexistent', { comment: 'test' });
+      expect(result).toBeNull();
+    });
+
+    it('should return updated feedback copy (not reference)', () => {
+      const feedback = store.createFeedback({
+        comment: 'Original',
+        pageUrl: 'https://example.com/page',
+      });
+      const result = store.updateFeedback(feedback.id, { comment: 'Updated' });
+      const pending = store.getPendingFeedback();
+      // Mutating returned copy should not affect stored data
+      result!.comment = 'Mutated';
+      expect(pending[0].comment).toBe('Updated');
+    });
+  });
+
+  describe('deleteFeedback (soft delete)', () => {
+    it('should set status to dismissed', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      const result = store.deleteFeedback(feedback.id);
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe('dismissed');
+    });
+
+    it('should set resolution and resolvedAt', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      const result = store.deleteFeedback(feedback.id);
+      expect(result!.resolution).toBe('Deleted via widget');
+      expect(result!.resolvedAt).toBeDefined();
+    });
+
+    it('should return null for already resolved/dismissed', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      store.resolveFeedback(feedback.id, 'Done');
+      expect(store.deleteFeedback(feedback.id)).toBeNull();
+    });
+
+    it('should return null for unknown id', () => {
+      expect(store.deleteFeedback('nonexistent')).toBeNull();
+    });
+
+    it('dismissed feedback excluded from getPendingFeedback', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      store.deleteFeedback(feedback.id);
+      expect(store.getPendingFeedback()).toHaveLength(0);
+    });
+  });
+
+  describe('findByExternalId', () => {
+    it('should return MCP id for known externalId', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+        externalId: 'ext-123',
+      });
+      expect(store.findByExternalId('ext-123')).toBe(feedback.id);
+    });
+
+    it('should return undefined for unknown externalId', () => {
+      expect(store.findByExternalId('nonexistent')).toBeUndefined();
+    });
+  });
+
+  describe('URL normalization', () => {
+    it('should group same path with different query params into one session', () => {
+      const f1 = store.createFeedback({
+        comment: 'a',
+        pageUrl: 'https://example.com/page?tab=1',
+      });
+      const f2 = store.createFeedback({
+        comment: 'b',
+        pageUrl: 'https://example.com/page?tab=2',
+      });
+      expect(f1.sessionId).toBe(f2.sessionId);
+    });
+
+    it('should group same path with hash into one session', () => {
+      const f1 = store.createFeedback({
+        comment: 'a',
+        pageUrl: 'https://example.com/page',
+      });
+      const f2 = store.createFeedback({
+        comment: 'b',
+        pageUrl: 'https://example.com/page#section',
+      });
+      expect(f1.sessionId).toBe(f2.sessionId);
+    });
+  });
 });

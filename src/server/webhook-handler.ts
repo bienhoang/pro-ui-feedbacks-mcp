@@ -1,12 +1,14 @@
 import type { Store } from '../store/store.js';
 import type { SyncPayload, SyncFeedbackData } from '../types/sync-payload.js';
 import type { CreateFeedbackInput } from '../types/index.js';
+import { MAX_BATCH_SIZE } from '../constants.js';
 
 export interface WebhookResult {
-  ok: true;
+  ok: boolean;
   created?: number;
   updated?: boolean;
   deleted?: boolean;
+  error?: string;
 }
 
 /** Transform widget feedback data into MCP CreateFeedbackInput with rich metadata. */
@@ -68,6 +70,9 @@ export function handleWebhook(store: Store, payload: SyncPayload): WebhookResult
     }
     case 'feedback.batch': {
       const items = payload.feedbacks ?? [];
+      if (items.length > MAX_BATCH_SIZE) {
+        return { ok: false, error: `Batch size ${items.length} exceeds limit of ${MAX_BATCH_SIZE}` };
+      }
       for (const fb of items) {
         store.createFeedback(transformFeedback(fb, payload.page.url, payload.page.viewport));
       }
