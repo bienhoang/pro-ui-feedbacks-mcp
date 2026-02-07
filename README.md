@@ -67,6 +67,7 @@ Detects installed agents and writes config automatically.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/feedback` | Submit new feedback |
+| `POST` | `/api/webhook` | Widget sync (SyncPayload) |
 | `GET` | `/api/sessions` | List all sessions |
 | `GET` | `/api/sessions/:id` | Get session with feedbacks |
 | `GET` | `/api/health` | Health check |

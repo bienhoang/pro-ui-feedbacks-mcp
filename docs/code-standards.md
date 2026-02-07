@@ -23,27 +23,38 @@
 pro-ui-feedbacks-mcp/
 ├── src/
 │   ├── types/              # Zod schemas & type definitions
-│   │   └── index.ts
+│   │   ├── index.ts        # Domain schemas (Feedback, Session, etc.)
+│   │   ├── sync-payload.ts # Widget SyncPayload schemas
+│   │   └── shared-schemas.ts # Shared shapes (BoundingBox, Accessibility, etc.)
 │   ├── store/              # Store interface + implementations
 │   │   ├── store.ts        # Abstract interface
 │   │   └── memory-store.ts # In-memory implementation
 │   ├── server/             # MCP + HTTP servers
 │   │   ├── mcp-server.ts   # MCP setup & tool registration
-│   │   └── http-server.ts  # HTTP API endpoints
+│   │   ├── http-server.ts  # HTTP API (extracted route handlers)
+│   │   └── webhook-handler.ts # Widget payload → store operations
 │   ├── tools/              # MCP tool implementations
 │   │   ├── list-sessions.ts
 │   │   ├── get-pending-feedback.ts
 │   │   ├── acknowledge-feedback.ts
 │   │   ├── resolve-feedback.ts
-│   │   └── dismiss-feedback.ts
+│   │   ├── dismiss-feedback.ts
+│   │   └── tool-helpers.ts # Shared formatting
 │   ├── commands/           # CLI commands
 │   │   ├── init.ts         # Auto-configure agents
-│   │   └── doctor.ts       # Health check
+│   │   ├── doctor.ts       # Health check
+│   │   └── agent-configs.ts # Agent config paths
+│   ├── constants.ts        # Shared constants
 │   ├── cli.ts              # Command router
 │   └── index.ts            # Public API exports
 ├── tests/
+│   ├── fixtures/
+│   │   └── sync-payloads.ts
 │   ├── memory-store.test.ts
-│   └── http-server.test.ts
+│   ├── webhook-handler.test.ts
+│   ├── mcp-tools-integration.test.ts
+│   ├── http-server.test.ts
+│   └── tool-helpers.test.ts
 ├── dist/                   # Compiled output (generated)
 ├── package.json
 ├── tsconfig.json

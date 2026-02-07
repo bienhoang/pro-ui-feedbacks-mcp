@@ -103,7 +103,8 @@
 src/
 ├── types/
 │   ├── index.ts            # Zod schemas (Feedback, Session, CreateFeedback, UpdateFeedback)
-│   └── sync-payload.ts     # SyncPayload schema for widget integration
+│   ├── sync-payload.ts     # SyncPayload schema for widget integration
+│   └── shared-schemas.ts   # Shared Zod shapes (BoundingBox, Accessibility, Viewport, AreaData)
 ├── store/
 │   ├── store.ts            # Interface definition (+ CRUD, externalId lookup)
 │   └── memory-store.ts     # In-memory implementation (+ externalIdMap)
@@ -121,7 +122,7 @@ src/
 │   ├── init.ts             # Auto-configure agents
 │   ├── doctor.ts           # Verify setup
 │   └── agent-configs.ts    # Agent config paths
-├── constants.ts            # DEFAULT_WEBHOOK_PATH
+├── constants.ts            # Shared constants (ports, limits, paths)
 ├── cli.ts                  # Command routing
 └── index.ts                # Public API (startServer)
 ```
@@ -132,9 +133,20 @@ src/
 
 ### 1. Types & Validation (`src/types/`)
 
+#### `shared-schemas.ts` — Shared Zod Shapes
+
+Common Zod shapes reused across `index.ts` and `sync-payload.ts`:
+
+| Schema | Purpose |
+|--------|---------|
+| `BoundingBoxSchema` | `{ x, y, width, height }` — element bounding box |
+| `AccessibilitySchema` | `{ role?, label? }` — a11y metadata |
+| `ViewportSchema` | `{ width, height }` — viewport dimensions |
+| `AreaDataSchema` | `{ centerX, centerY, width, height, elementCount }` — highlighted area |
+
 #### `index.ts` — Domain Types
 
-**Zod schemas define all domain types:**
+**Zod schemas define all domain types (imports shared shapes from `shared-schemas.ts`):**
 
 | Schema | Purpose |
 |--------|---------|
@@ -342,7 +354,8 @@ curl -X POST http://127.0.0.1:4747/api/webhook \
 Transforms widget SyncPayload into MCP store operations:
 
 ```typescript
-function transformFeedback(fb: SyncFeedbackData, pageUrl: string): CreateFeedbackInput
+function buildMetadata(fb: SyncFeedbackData, viewport?): FeedbackMetadata
+function transformFeedback(fb: SyncFeedbackData, pageUrl: string, viewport?): CreateFeedbackInput
 function handleWebhook(store: Store, payload: SyncPayload): WebhookResult
 ```
 
@@ -528,15 +541,19 @@ dist/
 
 ## Testing Strategy
 
-**Test files:** `tests/memory-store.test.ts`, `tests/http-server.test.ts`
+**Test files (80 tests total):**
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| `tests/memory-store.test.ts` | 30 | Store CRUD, status transitions, session lookups, URL normalization |
+| `tests/webhook-handler.test.ts` | 17 | Event dispatch, metadata, batch limit, area selection |
+| `tests/mcp-tools-integration.test.ts` | 14 | MCP tool registration + end-to-end |
+| `tests/http-server.test.ts` | 13 | Endpoint routing, validation, CORS, webhook |
+| `tests/tool-helpers.test.ts` | 6 | Shared formatting helpers |
+
+**Fixtures:** `tests/fixtures/sync-payloads.ts` — realistic widget payloads
 
 **Tools:** vitest
-
-**Coverage areas:**
-
-- Store: CRUD operations, status transitions, session lookups
-- HTTP: Endpoint routing, validation, CORS, error handling
-- Integration: Full request/response flows
 
 ---
 
@@ -564,15 +581,16 @@ dist/
 ```
 src/
 ├── types/
-│   ├── index.ts                # ~54 lines — Zod schemas (Feedback, Session, UpdateFeedback)
-│   └── sync-payload.ts         # ~64 lines — Widget SyncPayload schemas
+│   ├── index.ts                # ~100 lines — Zod schemas (imports shared shapes)
+│   ├── sync-payload.ts         # ~54 lines — Widget SyncPayload schemas (imports shared shapes)
+│   └── shared-schemas.ts       # 22 lines — Shared Zod shapes (BoundingBox, Accessibility, etc.)
 ├── store/
 │   ├── store.ts                # ~29 lines — Interface (+ updateFeedback, deleteFeedback, findByExternalId)
-│   └── memory-store.ts         # ~130 lines — Implementation (+ externalIdMap, CRUD)
+│   └── memory-store.ts         # ~150 lines — Implementation (+ isTerminalStatus helper)
 ├── server/
 │   ├── mcp-server.ts           # 36 lines — Setup + tool registration
-│   ├── http-server.ts          # ~180 lines — HTTP API (+ /api/webhook route)
-│   └── webhook-handler.ts      # 56 lines — Transform SyncPayload → MCP feedback
+│   ├── http-server.ts          # ~157 lines — HTTP API (extracted route handlers + thin router)
+│   └── webhook-handler.ts      # ~89 lines — Transform SyncPayload → MCP feedback (+ buildMetadata)
 ├── tools/
 │   ├── list-sessions.ts        # 24 lines — Tool
 │   ├── get-pending-feedback.ts # ~20 lines — Tool
@@ -589,8 +607,13 @@ src/
 └── index.ts                     # 38 lines — Public API
 
 tests/
-├── memory-store.test.ts
-└── http-server.test.ts
+├── fixtures/
+│   └── sync-payloads.ts        # Realistic test fixtures for webhook testing
+├── memory-store.test.ts        # 30 tests — Store CRUD + URL normalization
+├── webhook-handler.test.ts     # 17 tests — Event dispatch + metadata
+├── mcp-tools-integration.test.ts # 14 tests — MCP tool end-to-end
+├── http-server.test.ts         # 13 tests — HTTP endpoints + webhook
+└── tool-helpers.test.ts        # 6 tests — Shared formatting
 ```
 
 ---

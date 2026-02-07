@@ -183,22 +183,35 @@
 
 ## Component Architecture
 
-### 1. Type Layer (`src/types/index.ts`)
+### 1. Type Layer (`src/types/`)
 
 **Responsibility:** Define all data types via Zod schemas.
 
+#### `shared-schemas.ts` — Shared Zod Shapes
+
+Common shapes reused across domain and sync-payload schemas:
+- `BoundingBoxSchema`, `AccessibilitySchema`, `ViewportSchema`, `AreaDataSchema`
+
+#### `index.ts` — Domain Types
+
 **Exports:**
-- `FeedbackIntent` enum
-- `FeedbackSeverity` enum
-- `FeedbackStatus` enum
+- `FeedbackIntent`, `FeedbackSeverity`, `FeedbackStatus` enums
 - `FeedbackSchema` + `Feedback` type
+- `ElementSummarySchema`, `FeedbackMetadataSchema` (use shared shapes)
 - `CreateFeedbackSchema` + `CreateFeedbackInput` type
+- `UpdateFeedbackSchema` + `UpdateFeedbackInput` type
 - `SessionSchema` + `Session` type
 - `SessionWithFeedbacks` interface
+- Re-exports shared schemas for backward compat
+
+#### `sync-payload.ts` — Widget Integration
+
+- `SyncElementDataSchema`, `SyncFeedbackDataSchema`, `SyncPayloadSchema`
+- Imports `BoundingBoxSchema`, `AccessibilitySchema`, `ViewportSchema`, `AreaDataSchema` from shared
 
 **Dependencies:** zod only
 
-**Rationale:** Centralized, single source of truth for validation + types.
+**Rationale:** Shared shapes eliminate duplication; centralized source of truth.
 
 ---
 
