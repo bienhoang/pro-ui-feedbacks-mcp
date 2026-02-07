@@ -1,0 +1,23 @@
+# Source
+src/
+tests/
+
+# Config
+tsconfig.json
+tsup.config.ts
+.editorconfig
+.github/
+.vscode/
+.idea/
+
+# Dev files
+*.tsbuildinfo
+coverage/
+plans/
+docs/
+repomix-output.xml
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log

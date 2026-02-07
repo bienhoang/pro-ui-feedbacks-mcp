@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "prepublishOnly": "npm run build"
@@ -34,14 +35,14 @@
     "ui-feedback",
     "annotations"
   ],
-  "author": "",
+  "author": "AiCodingBattle",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "git+https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp.git"
   },
-  "homepage": "",
+  "homepage": "https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp#readme",
   "bugs": {
-    "url": ""
+    "url": "https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp/issues"
   },
   "license": "MIT",
   "dependencies": {

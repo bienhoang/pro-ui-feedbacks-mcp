@@ -1,5 +1,35 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+
+# TypeScript
 *.tsbuildinfo
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Test coverage
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
 plans/
+repomix-output.xml
