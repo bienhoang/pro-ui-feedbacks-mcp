@@ -9,8 +9,12 @@ export interface WebhookResult {
   deleted?: boolean;
 }
 
-/** Transform widget feedback data into MCP CreateFeedbackInput. */
-function transformFeedback(fb: SyncFeedbackData, pageUrl: string): CreateFeedbackInput {
+/** Transform widget feedback data into MCP CreateFeedbackInput with rich metadata. */
+function transformFeedback(
+  fb: SyncFeedbackData,
+  pageUrl: string,
+  viewport?: { width: number; height: number },
+): CreateFeedbackInput {
   return {
     comment: fb.content,
     pageUrl,
@@ -19,6 +23,24 @@ function transformFeedback(fb: SyncFeedbackData, pageUrl: string): CreateFeedbac
     externalId: fb.id,
     intent: 'fix',
     severity: 'suggestion',
+    metadata: {
+      boundingBox: fb.element?.boundingBox,
+      accessibility: fb.element?.accessibility,
+      elementDescription: fb.element?.elementDescription,
+      fullPath: fb.element?.fullPath,
+      stepNumber: fb.stepNumber,
+      pageCoords: { x: fb.pageX, y: fb.pageY },
+      areaData: fb.areaData,
+      isAreaOnly: fb.isAreaOnly,
+      elements: fb.elements?.map((el) => ({
+        selector: el.selector,
+        tagName: el.tagName,
+        elementPath: el.elementPath,
+        elementDescription: el.elementDescription,
+        boundingBox: el.boundingBox,
+      })),
+      viewport,
+    },
   };
 }
 
@@ -27,7 +49,7 @@ export function handleWebhook(store: Store, payload: SyncPayload): WebhookResult
   switch (payload.event) {
     case 'feedback.created': {
       if (!payload.feedback) return { ok: true, created: 0 };
-      store.createFeedback(transformFeedback(payload.feedback, payload.page.url));
+      store.createFeedback(transformFeedback(payload.feedback, payload.page.url, payload.page.viewport));
       return { ok: true, created: 1 };
     }
     case 'feedback.updated': {
@@ -47,7 +69,7 @@ export function handleWebhook(store: Store, payload: SyncPayload): WebhookResult
     case 'feedback.batch': {
       const items = payload.feedbacks ?? [];
       for (const fb of items) {
-        store.createFeedback(transformFeedback(fb, payload.page.url));
+        store.createFeedback(transformFeedback(fb, payload.page.url, payload.page.viewport));
       }
       return { ok: true, created: items.length };
     }

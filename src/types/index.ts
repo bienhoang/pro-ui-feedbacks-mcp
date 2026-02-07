@@ -11,6 +11,45 @@ export type FeedbackSeverity = z.infer<typeof FeedbackSeverity>;
 export const FeedbackStatus = z.enum(['pending', 'acknowledged', 'resolved', 'dismissed']);
 export type FeedbackStatus = z.infer<typeof FeedbackStatus>;
 
+// --- Element metadata for rich widget data ---
+
+export const ElementSummarySchema = z.object({
+  selector: z.string(),
+  tagName: z.string(),
+  elementPath: z.string().optional(),
+  elementDescription: z.string().optional(),
+  boundingBox: z.object({
+    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
+  }).optional(),
+});
+export type ElementSummary = z.infer<typeof ElementSummarySchema>;
+
+export const FeedbackMetadataSchema = z.object({
+  boundingBox: z.object({
+    x: z.number(), y: z.number(), width: z.number(), height: z.number(),
+  }).optional(),
+  accessibility: z.object({
+    role: z.string().optional(),
+    label: z.string().optional(),
+  }).optional(),
+  elementDescription: z.string().optional(),
+  fullPath: z.string().optional(),
+  stepNumber: z.number().optional(),
+  pageCoords: z.object({ x: z.number(), y: z.number() }).optional(),
+  areaData: z.object({
+    centerX: z.number(),
+    centerY: z.number(),
+    width: z.number(),
+    height: z.number(),
+    elementCount: z.number(),
+  }).optional(),
+  isAreaOnly: z.boolean().optional(),
+  elements: z.array(ElementSummarySchema).optional(),
+  viewport: z.object({ width: z.number(), height: z.number() }).optional(),
+}).optional();
+
+export type FeedbackMetadata = z.infer<typeof FeedbackMetadataSchema>;
+
 // --- Feedback ---
 
 export const FeedbackSchema = z.object({
@@ -25,6 +64,7 @@ export const FeedbackSchema = z.object({
   severity: FeedbackSeverity,
   status: FeedbackStatus,
   externalId: z.string().optional(),
+  metadata: FeedbackMetadataSchema,
   createdAt: z.string().datetime(),
   resolvedAt: z.string().datetime().optional(),
   resolution: z.string().optional(),
@@ -42,6 +82,7 @@ export const CreateFeedbackSchema = z.object({
   severity: FeedbackSeverity.default('suggestion'),
   sessionId: z.string().optional(),
   externalId: z.string().optional(),
+  metadata: FeedbackMetadataSchema,
 });
 export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
 

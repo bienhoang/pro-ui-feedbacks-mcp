@@ -47,6 +47,7 @@ export class MemoryStore implements Store {
       severity: input.severity ?? 'suggestion',
       status: 'pending',
       externalId: input.externalId,
+      metadata: input.metadata,
       createdAt: new Date().toISOString(),
     };
 
