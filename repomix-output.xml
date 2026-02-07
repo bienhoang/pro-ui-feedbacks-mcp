@@ -1,0 +1,3781 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+plans/
+  260208-0019-mcp-server-implementation/
+    phase-01-project-scaffolding.md
+    phase-02-core-types-and-store.md
+    phase-03-mcp-server-and-tools.md
+    phase-04-http-api-server.md
+    phase-05-cli-and-npm-publishing.md
+    plan.md
+  reports/
+    brainstorm-260208-0019-mcp-project-structure.md
+    code-reviewer-260208-0043-phase01-scaffolding-review.md
+    researcher-260208-0032-mcp-typescript-sdk-v1x-api.md
+src/
+  commands/
+    doctor.ts
+    init.ts
+  server/
+    http-server.ts
+    mcp-server.ts
+  store/
+    memory-store.ts
+    store.ts
+  tools/
+    acknowledge-feedback.ts
+    dismiss-feedback.ts
+    get-pending-feedback.ts
+    list-sessions.ts
+    resolve-feedback.ts
+  types/
+    index.ts
+  cli.ts
+  index.ts
+tests/
+  http-server.test.ts
+  memory-store.test.ts
+.gitignore
+LICENSE
+package.json
+README.md
+tsconfig.json
+tsup.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="plans/260208-0019-mcp-server-implementation/phase-01-project-scaffolding.md">
+# Phase 01: Project Scaffolding
+
+## Context
+
+- **Parent plan:** [plan.md](./plan.md)
+- **Dependencies:** None
+- **Docs:** [SDK Research](../reports/researcher-260208-0032-mcp-typescript-sdk-v1x-api.md)
+
+## Overview
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-02-08 |
+| Description | Initialize npm project with TypeScript, tsup, vitest, and all config files |
+| Priority | P0 |
+| Implementation | ✅ completed |
+| Review | ✅ completed (score: 8.5/10) |
+
+## Key Insights
+
+- SDK v1.x uses `@modelcontextprotocol/sdk` single package with subpath exports
+- All imports require `.js` extension for ESM
+- `zod` is a required peer dependency (v3.25+ or v4)
+- `tsup` handles both ESM bundling and `.d.ts` generation
+
+## Requirements
+
+- Initialize npm project with ESM (`"type": "module"`)
+- Configure TypeScript for ESM with bundler resolution
+- Setup tsup for dual entry points (`cli.ts` + `index.ts`)
+- Setup vitest for testing
+- Create directory structure per brainstorm
+
+## Architecture
+
+```
+pro-ui-feedbacks-mcp/
+├── src/
+│   ├── index.ts
+│   ├── cli.ts
+│   ├── server/
+│   ├── tools/
+│   ├── store/
+│   └── types/
+├── tests/
+├── package.json
+├── tsconfig.json
+├── tsup.config.ts
+└── vitest.config.ts (optional, vitest works from tsconfig)
+```
+
+## Related Code Files
+
+All files are new — no existing code.
+
+## Implementation Steps
+
+### 1. Initialize npm project
+
+```bash
+npm init -y
+```
+
+### 2. Create `package.json`
+
+```jsonc
+{
+  "name": "pro-ui-feedbacks-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for UI feedback processing by AI agents",
+  "type": "module",
+  "bin": {
+    "pro-ui-feedbacks-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["mcp", "model-context-protocol", "ai-agent", "ui-feedback", "annotations"],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
+```
+
+### 3. Create `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
+```
+
+### 4. Create `tsup.config.ts`
+
+```typescript
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/cli.ts', 'src/index.ts'],
+  format: ['esm'],
+  dts: true,
+  clean: true,
+  sourcemap: true,
+  target: 'node18',
+  banner: {
+    js: '#!/usr/bin/env node',
+  },
+});
+```
+
+**Note:** Banner shebang only needed for `cli.ts`. tsup applies it to all entry points but only the bin entry uses it — harmless for `index.ts`.
+
+### 5. Create directory structure
+
+```bash
+mkdir -p src/{server,tools,store,types} tests
+```
+
+### 6. Create placeholder files
+
+- `src/index.ts` — exports `startServer()`
+- `src/cli.ts` — CLI entry point
+- `src/types/index.ts` — type definitions
+- `src/store/store.ts` — store interface
+- `src/store/memory-store.ts` — in-memory implementation
+- `src/server/mcp-server.ts` — MCP server setup
+- `src/server/http-server.ts` — HTTP API
+
+### 7. Install dependencies
+
+```bash
+npm install
+```
+
+### 8. Verify build
+
+```bash
+npm run build
+```
+
+## Todo
+
+- [x] Initialize npm project
+- [x] Create package.json with all fields
+- [x] Create tsconfig.json
+- [x] Create tsup.config.ts
+- [x] Create directory structure
+- [x] Create placeholder files
+- [x] Install dependencies
+- [x] Verify build succeeds
+
+## Success Criteria
+
+- `npm run build` produces `dist/cli.js` and `dist/index.js` with type declarations
+- `node dist/cli.js --help` runs without error
+- Directory structure matches brainstorm spec
+
+## Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| tsup shebang on all entries | Low | Harmless for library entry |
+| SDK version mismatch | Medium | Pin to ^1.26.0, test before publish |
+
+## Security Considerations
+
+- No secrets or credentials in package
+- `.npmignore` or `"files"` field ensures only `dist/` is published
+
+## Next Steps
+
+Proceed to Phase 02: Core Types & Store
+</file>
+
+<file path="plans/260208-0019-mcp-server-implementation/phase-02-core-types-and-store.md">
+# Phase 02: Core Types & Store
+
+## Context
+
+- **Parent plan:** [plan.md](./plan.md)
+- **Dependencies:** Phase 01 (project scaffolding)
+- **Docs:** [Brainstorm](../reports/brainstorm-260208-0019-mcp-project-structure.md)
+
+## Overview
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-02-08 |
+| Description | Define TypeScript types, Zod schemas, store interface, and in-memory store |
+| Priority | P0 |
+| Implementation | pending |
+| Review | pending |
+
+## Key Insights
+
+- Store interface pattern enables future swap (memory → SQLite) without changing tools
+- Zod schemas serve dual purpose: HTTP validation + MCP tool input schemas
+- Types should be exported for consumers who want custom integrations
+
+## Requirements
+
+- Define all domain types (Feedback, Session, enums)
+- Create Zod schemas matching the types
+- Define abstract Store interface
+- Implement MemoryStore with full CRUD
+- Export types from package
+
+## Architecture
+
+```
+src/types/
+└── index.ts          # All types + Zod schemas
+
+src/store/
+├── store.ts          # Store interface (abstract)
+└── memory-store.ts   # In-memory implementation
+```
+
+## Related Code Files
+
+- `src/types/index.ts` — new
+- `src/store/store.ts` — new
+- `src/store/memory-store.ts` — new
+
+## Implementation Steps
+
+### 1. `src/types/index.ts` — Types & Schemas
+
+```typescript
+import { z } from 'zod';
+
+// Enums
+export const FeedbackIntent = z.enum(['fix', 'change', 'question', 'approve']);
+export type FeedbackIntent = z.infer<typeof FeedbackIntent>;
+
+export const FeedbackSeverity = z.enum(['blocking', 'important', 'suggestion']);
+export type FeedbackSeverity = z.infer<typeof FeedbackSeverity>;
+
+export const FeedbackStatus = z.enum(['pending', 'acknowledged', 'resolved', 'dismissed']);
+export type FeedbackStatus = z.infer<typeof FeedbackStatus>;
+
+// Feedback schema
+export const FeedbackSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  comment: z.string(),
+  element: z.string().optional(),
+  elementPath: z.string().optional(),
+  screenshotUrl: z.string().url().optional(),
+  pageUrl: z.string().url(),
+  intent: FeedbackIntent,
+  severity: FeedbackSeverity,
+  status: FeedbackStatus,
+  createdAt: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+  resolution: z.string().optional(),
+});
+export type Feedback = z.infer<typeof FeedbackSchema>;
+
+// Create feedback input (from HTTP API)
+export const CreateFeedbackSchema = z.object({
+  comment: z.string().min(1),
+  pageUrl: z.string().url(),
+  element: z.string().optional(),
+  elementPath: z.string().optional(),
+  screenshotUrl: z.string().url().optional(),
+  intent: FeedbackIntent.default('fix'),
+  severity: FeedbackSeverity.default('suggestion'),
+  sessionId: z.string().optional(), // auto-create session if not provided
+});
+export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
+
+// Session schema
+export const SessionSchema = z.object({
+  id: z.string(),
+  pageUrl: z.string().url(),
+  title: z.string(),
+  createdAt: z.string().datetime(),
+});
+export type Session = z.infer<typeof SessionSchema>;
+
+// Session with feedbacks (for queries)
+export interface SessionWithFeedbacks extends Session {
+  feedbacks: Feedback[];
+}
+```
+
+### 2. `src/store/store.ts` — Store Interface
+
+```typescript
+import type { Feedback, Session, SessionWithFeedbacks, CreateFeedbackInput } from '../types/index.js';
+
+export interface Store {
+  // Sessions
+  listSessions(): Session[];
+  getSession(sessionId: string): SessionWithFeedbacks | null;
+
+  // Feedback
+  createFeedback(input: CreateFeedbackInput): Feedback;
+  getPendingFeedback(sessionId?: string): Feedback[];
+  acknowledgeFeedback(feedbackId: string): Feedback | null;
+  resolveFeedback(feedbackId: string, resolution: string): Feedback | null;
+  dismissFeedback(feedbackId: string, reason: string): Feedback | null;
+}
+```
+
+### 3. `src/store/memory-store.ts` — In-Memory Implementation
+
+Key behaviors:
+- Auto-create session when feedback's `sessionId` is missing (group by `pageUrl`)
+- Generate IDs with `crypto.randomUUID()`
+- Feedback status transitions: `pending` → `acknowledged` → `resolved`/`dismissed`
+- `getPendingFeedback()` returns feedbacks with status `pending` or `acknowledged`
+
+Implementation:
+- Use `Map<string, Session>` for sessions
+- Use `Map<string, Feedback>` for feedbacks (flat, linked by `sessionId`)
+- `getSession()` joins session + its feedbacks
+
+### 4. Tests — `tests/memory-store.test.ts`
+
+Test cases:
+- Create feedback auto-creates session
+- Create feedback with existing sessionId links to session
+- List sessions returns all
+- Get pending returns only pending/acknowledged
+- Acknowledge transitions status
+- Resolve transitions status + sets resolution
+- Dismiss transitions status + sets resolution
+- Get session includes feedbacks
+
+## Todo
+
+- [ ] Create types/index.ts with Zod schemas
+- [ ] Create store/store.ts interface
+- [ ] Create store/memory-store.ts implementation
+- [ ] Write tests for MemoryStore
+- [ ] Verify all tests pass
+
+## Success Criteria
+
+- All types exported and usable
+- MemoryStore passes all CRUD tests
+- Zod schemas validate correctly
+
+## Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Schema too rigid for future features | Low | Zod schemas easy to extend |
+| In-memory data loss | Accepted | MVP tradeoff, SQLite in V2 |
+
+## Security Considerations
+
+- Validate all input through Zod schemas before storing
+- No direct user input reaches store without validation
+
+## Next Steps
+
+Proceed to Phase 03: MCP Server & Tools
+</file>
+
+<file path="plans/260208-0019-mcp-server-implementation/phase-03-mcp-server-and-tools.md">
+# Phase 03: MCP Server & Tools
+
+## Context
+
+- **Parent plan:** [plan.md](./plan.md)
+- **Dependencies:** Phase 02 (types & store)
+- **Docs:** [SDK API Research](../reports/researcher-260208-0032-mcp-typescript-sdk-v1x-api.md)
+
+## Overview
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-02-08 |
+| Description | Implement MCP server with 5 tools using @modelcontextprotocol/sdk v1.x |
+| Priority | P0 |
+| Implementation | pending |
+| Review | pending |
+
+## Key Insights
+
+- SDK v1.x API: `server.registerTool(name, config, handler)`
+- Import from `@modelcontextprotocol/sdk/server/mcp.js` (with `.js` extension)
+- Input schema is a plain object of Zod types (not z.object wrapper)
+- Tool handlers return `{ content: [{ type: 'text', text: string }] }`
+- `console.error()` for logging (stdout reserved for JSON-RPC in stdio)
+
+## Requirements
+
+- Create MCP server instance with metadata
+- Register 5 tools: list_sessions, get_pending_feedback, acknowledge_feedback, resolve_feedback, dismiss_feedback
+- Each tool uses Zod schemas for input validation
+- Tools interact with Store interface (dependency injection)
+- Connect to StdioServerTransport
+
+## Architecture
+
+```
+src/server/
+└── mcp-server.ts      # McpServer setup + tool registration
+
+src/tools/
+├── list-sessions.ts
+├── get-pending-feedback.ts
+├── acknowledge-feedback.ts
+├── resolve-feedback.ts
+└── dismiss-feedback.ts
+```
+
+**Design:** Each tool file exports a `register` function that takes `(server, store)`. The `mcp-server.ts` orchestrates registration.
+
+## Related Code Files
+
+- `src/server/mcp-server.ts` — new
+- `src/tools/*.ts` — new (5 files)
+
+## Implementation Steps
+
+### 1. `src/server/mcp-server.ts` — Server Setup
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { Store } from '../store/store.js';
+import { registerListSessions } from '../tools/list-sessions.js';
+import { registerGetPendingFeedback } from '../tools/get-pending-feedback.js';
+import { registerAcknowledgeFeedback } from '../tools/acknowledge-feedback.js';
+import { registerResolveFeedback } from '../tools/resolve-feedback.js';
+import { registerDismissFeedback } from '../tools/dismiss-feedback.js';
+
+export function createMcpServer(store: Store): McpServer {
+  const server = new McpServer({
+    name: 'pro-ui-feedbacks-mcp',
+    version: '0.1.0',
+  });
+
+  // Register all tools
+  registerListSessions(server, store);
+  registerGetPendingFeedback(server, store);
+  registerAcknowledgeFeedback(server, store);
+  registerResolveFeedback(server, store);
+  registerDismissFeedback(server, store);
+
+  return server;
+}
+
+export async function startMcpServer(server: McpServer): Promise<void> {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('[MCP] Server connected via stdio');
+}
+```
+
+### 2. Tool: `list_sessions`
+
+```typescript
+// src/tools/list-sessions.ts
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Store } from '../store/store.js';
+
+export function registerListSessions(server: McpServer, store: Store): void {
+  server.registerTool(
+    'list_sessions',
+    {
+      description: 'List all active UI feedback sessions. Each session represents a page with annotations.',
+      inputSchema: {},  // no input needed
+    },
+    async () => {
+      const sessions = store.listSessions();
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(sessions, null, 2),
+        }],
+      };
+    }
+  );
+}
+```
+
+### 3. Tool: `get_pending_feedback`
+
+```typescript
+// src/tools/get-pending-feedback.ts
+import { z } from 'zod';
+// inputSchema:
+//   sessionId: z.string().optional().describe('Filter by session ID. Omit for all pending.')
+// Returns: pending + acknowledged feedbacks
+```
+
+### 4. Tool: `acknowledge_feedback`
+
+```typescript
+// src/tools/acknowledge-feedback.ts
+import { z } from 'zod';
+// inputSchema:
+//   feedbackId: z.string().describe('ID of feedback to acknowledge')
+// Calls store.acknowledgeFeedback(), returns updated feedback or error
+```
+
+### 5. Tool: `resolve_feedback`
+
+```typescript
+// src/tools/resolve-feedback.ts
+import { z } from 'zod';
+// inputSchema:
+//   feedbackId: z.string().describe('ID of feedback to resolve')
+//   resolution: z.string().describe('Summary of what was done to address the feedback')
+// Calls store.resolveFeedback(), returns updated feedback or error
+```
+
+### 6. Tool: `dismiss_feedback`
+
+```typescript
+// src/tools/dismiss-feedback.ts
+import { z } from 'zod';
+// inputSchema:
+//   feedbackId: z.string().describe('ID of feedback to dismiss')
+//   reason: z.string().describe('Reason for dismissing the feedback')
+// Calls store.dismissFeedback(), returns updated feedback or error
+```
+
+### 7. Error Handling Pattern
+
+All tools follow consistent error pattern:
+
+```typescript
+async ({ feedbackId }) => {
+  const result = store.acknowledgeFeedback(feedbackId);
+  if (!result) {
+    return {
+      content: [{ type: 'text', text: `Feedback not found: ${feedbackId}` }],
+      isError: true,
+    };
+  }
+  return {
+    content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+  };
+}
+```
+
+### 8. Tests — `tests/mcp-tools.test.ts`
+
+Test each tool via store mock:
+- list_sessions returns formatted sessions
+- get_pending_feedback filters by sessionId
+- acknowledge_feedback transitions status
+- resolve_feedback sets resolution
+- dismiss_feedback sets reason
+- Error cases for non-existent IDs
+
+## Todo
+
+- [ ] Create mcp-server.ts with createMcpServer()
+- [ ] Implement list_sessions tool
+- [ ] Implement get_pending_feedback tool
+- [ ] Implement acknowledge_feedback tool
+- [ ] Implement resolve_feedback tool
+- [ ] Implement dismiss_feedback tool
+- [ ] Write tests for all tools
+- [ ] Verify MCP server connects via stdio
+
+## Success Criteria
+
+- All 5 tools registered and callable
+- Tools return properly formatted MCP responses
+- Error cases handled gracefully
+- Tests pass
+
+## Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| SDK API changes in minor versions | Low | Pin ^1.26.0 |
+| Tool naming conflicts with other MCP servers | Low | Use descriptive names |
+
+## Security Considerations
+
+- Validate all tool inputs via Zod schemas
+- Tools only read/write to shared store, no filesystem or network access
+- `isError: true` flag for error responses (MCP convention)
+
+## Next Steps
+
+Proceed to Phase 04: HTTP API Server
+</file>
+
+<file path="plans/260208-0019-mcp-server-implementation/phase-04-http-api-server.md">
+# Phase 04: HTTP API Server
+
+## Context
+
+- **Parent plan:** [plan.md](./plan.md)
+- **Dependencies:** Phase 02 (types & store)
+- **Docs:** [Brainstorm](../reports/brainstorm-260208-0019-mcp-project-structure.md)
+
+## Overview
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-02-08 |
+| Description | Implement HTTP API using Node.js native http module for receiving feedback |
+| Priority | P0 |
+| Implementation | pending |
+| Review | pending |
+
+## Key Insights
+
+- Use native `node:http` — no Express dependency needed for 4 simple endpoints
+- Keeps package lightweight (zero extra HTTP deps)
+- HTTP server binds to `127.0.0.1` only (security: no external access)
+- JSON body parsing is trivial with `node:http`
+- Zod validates request body before store write
+
+## Requirements
+
+- 4 endpoints: POST /api/feedback, GET /api/sessions, GET /api/sessions/:id, GET /api/health
+- Bind to localhost:4747 (configurable via --port)
+- Validate request body with Zod schemas
+- Share same Store instance with MCP server
+- CORS headers for browser-based clients (future browser ext)
+
+## Architecture
+
+```
+src/server/
+└── http-server.ts    # HTTP API using node:http
+```
+
+Single file — 4 routes don't warrant a router framework.
+
+## Related Code Files
+
+- `src/server/http-server.ts` — new
+
+## Implementation Steps
+
+### 1. `src/server/http-server.ts`
+
+```typescript
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { Store } from '../store/store.js';
+import { CreateFeedbackSchema } from '../types/index.js';
+
+export interface HttpServerOptions {
+  port: number;
+  store: Store;
+}
+
+export function createHttpServer({ port, store }: HttpServerOptions) {
+  const server = createServer(async (req, res) => {
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    const pathname = url.pathname;
+
+    try {
+      // Route: GET /api/health
+      if (req.method === 'GET' && pathname === '/api/health') {
+        json(res, 200, { status: 'ok' });
+        return;
+      }
+
+      // Route: GET /api/sessions
+      if (req.method === 'GET' && pathname === '/api/sessions') {
+        json(res, 200, store.listSessions());
+        return;
+      }
+
+      // Route: GET /api/sessions/:id
+      const sessionMatch = pathname.match(/^\/api\/sessions\/(.+)$/);
+      if (req.method === 'GET' && sessionMatch) {
+        const session = store.getSession(sessionMatch[1]);
+        if (!session) {
+          json(res, 404, { error: 'Session not found' });
+          return;
+        }
+        json(res, 200, session);
+        return;
+      }
+
+      // Route: POST /api/feedback
+      if (req.method === 'POST' && pathname === '/api/feedback') {
+        const body = await parseBody(req);
+        const parsed = CreateFeedbackSchema.safeParse(body);
+        if (!parsed.success) {
+          json(res, 400, { error: 'Validation failed', details: parsed.error.issues });
+          return;
+        }
+        const feedback = store.createFeedback(parsed.data);
+        json(res, 201, feedback);
+        return;
+      }
+
+      // 404
+      json(res, 404, { error: 'Not found' });
+    } catch (err) {
+      console.error('[HTTP] Error:', err);
+      json(res, 500, { error: 'Internal server error' });
+    }
+  });
+
+  return {
+    start: () => new Promise<void>((resolve) => {
+      server.listen(port, '127.0.0.1', () => {
+        console.error(`[HTTP] Server listening on http://127.0.0.1:${port}`);
+        resolve();
+      });
+    }),
+    close: () => new Promise<void>((resolve) => {
+      server.close(() => resolve());
+    }),
+  };
+}
+
+// Helpers
+function json(res: ServerResponse, status: number, data: unknown) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+async function parseBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString()));
+      } catch {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+```
+
+### 2. Tests — `tests/http-server.test.ts`
+
+Test cases using `fetch()` (Node 18+ built-in):
+- GET /api/health returns 200 `{ status: 'ok' }`
+- POST /api/feedback with valid body → 201
+- POST /api/feedback with invalid body → 400 with Zod errors
+- GET /api/sessions returns array
+- GET /api/sessions/:id returns session or 404
+- Unknown route → 404
+- CORS headers present
+
+## Todo
+
+- [ ] Create http-server.ts
+- [ ] Implement all 4 routes
+- [ ] Add CORS support
+- [ ] Add body parsing + Zod validation
+- [ ] Write tests
+- [ ] Verify tests pass
+
+## Success Criteria
+
+- All endpoints respond correctly
+- Zod validation rejects bad input with clear errors
+- Server binds to 127.0.0.1 only
+- Tests pass
+
+## Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| No request size limit | Low | Add max body size check (1MB) in parseBody |
+| Raw `node:http` is verbose | Low | Only 4 routes, manageable |
+
+## Security Considerations
+
+- **Bind localhost only** (`127.0.0.1`) — prevents external access
+- Validate all POST bodies via Zod
+- Set max body size to prevent abuse
+- CORS `*` is acceptable for MVP local-only usage
+
+## Next Steps
+
+Proceed to Phase 05: CLI & npm Publishing
+</file>
+
+<file path="plans/260208-0019-mcp-server-implementation/phase-05-cli-and-npm-publishing.md">
+# Phase 05: CLI & npm Publishing
+
+## Context
+
+- **Parent plan:** [plan.md](./plan.md)
+- **Dependencies:** Phase 01-04 (all prior phases)
+- **Docs:** [Brainstorm](../reports/brainstorm-260208-0019-mcp-project-structure.md)
+
+## Overview
+
+| Field | Value |
+|-------|-------|
+| Date | 2026-02-08 |
+| Description | Wire CLI entry, implement init/doctor commands, prepare for npm publish |
+| Priority | P0 |
+| Implementation | pending |
+| Review | pending |
+
+## Key Insights
+
+- CLI is the main entry point — `npx pro-ui-feedbacks-mcp` must "just work"
+- Default behavior (no args) should start both MCP + HTTP servers
+- `init` command auto-detects AI agents and writes MCP config
+- `doctor` command verifies setup is correct
+- `--mcp-only` flag for agents that don't need HTTP server
+
+## Requirements
+
+- `src/cli.ts` — CLI entry with shebang
+- `src/index.ts` — exports `startServer()` for programmatic use
+- `init` command detects Claude Code, Cursor, Copilot, Windsurf configs
+- `doctor` command checks config exists and server can start
+- README.md with installation + usage docs
+
+## Architecture
+
+```
+src/
+├── cli.ts            # CLI entry (#!/usr/bin/env node)
+├── index.ts          # startServer() + type re-exports
+└── commands/
+    ├── init.ts       # Agent auto-configuration
+    └── doctor.ts     # Setup verification
+```
+
+## Related Code Files
+
+- `src/cli.ts` — new
+- `src/index.ts` — new
+- `src/commands/init.ts` — new
+- `src/commands/doctor.ts` — new
+- `README.md` — new
+
+## Implementation Steps
+
+### 1. `src/index.ts` — Main Entry
+
+```typescript
+import { createMcpServer, startMcpServer } from './server/mcp-server.js';
+import { createHttpServer } from './server/http-server.js';
+import { MemoryStore } from './store/memory-store.js';
+
+export interface ServerOptions {
+  port?: number;
+  mcpOnly?: boolean;
+}
+
+export async function startServer(options: ServerOptions = {}): Promise<void> {
+  const { port = 4747, mcpOnly = false } = options;
+  const store = new MemoryStore();
+
+  // Start MCP server (always)
+  const mcpServer = createMcpServer(store);
+  await startMcpServer(mcpServer);
+
+  // Start HTTP server (unless --mcp-only)
+  if (!mcpOnly) {
+    const httpServer = createHttpServer({ port, store });
+    await httpServer.start();
+  }
+}
+
+// Re-export types for consumers
+export * from './types/index.js';
+```
+
+### 2. `src/cli.ts` — CLI Entry
+
+```typescript
+#!/usr/bin/env node
+import { startServer } from './index.js';
+import { runInit } from './commands/init.js';
+import { runDoctor } from './commands/doctor.js';
+
+const args = process.argv.slice(2);
+const command = args[0];
+
+function getPort(): number {
+  const portIdx = args.indexOf('--port');
+  if (portIdx !== -1 && args[portIdx + 1]) {
+    return parseInt(args[portIdx + 1], 10);
+  }
+  return 4747;
+}
+
+async function main() {
+  switch (command) {
+    case 'init':
+      await runInit();
+      break;
+    case 'doctor':
+      await runDoctor();
+      break;
+    case 'server':
+    default:
+      await startServer({
+        port: getPort(),
+        mcpOnly: args.includes('--mcp-only'),
+      });
+      break;
+  }
+}
+
+main().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});
+```
+
+### 3. `src/commands/init.ts` — Auto-Configure Agents
+
+Detects and writes MCP config for known agents:
+
+```typescript
+// Agent config locations:
+const AGENT_CONFIGS = [
+  {
+    name: 'Claude Code',
+    configPath: '~/.claude/mcp.json',
+    format: 'json',
+  },
+  {
+    name: 'Cursor',
+    configPath: '.cursor/mcp.json',
+    format: 'json',
+  },
+  {
+    name: 'VS Code / Copilot',
+    configPath: '.vscode/mcp.json',
+    format: 'json',
+  },
+  {
+    name: 'Windsurf',
+    configPath: '.codeium/windsurf/mcp_config.json',
+    format: 'json',
+  },
+];
+
+// MCP server entry to inject:
+const MCP_ENTRY = {
+  "pro-ui-feedbacks": {
+    command: "npx",
+    args: ["pro-ui-feedbacks-mcp"]
+  }
+};
+```
+
+Logic:
+1. Check which config files exist
+2. Prompt user which agents to configure (or auto-detect)
+3. Read existing config, merge MCP entry, write back
+4. Print summary
+
+### 4. `src/commands/doctor.ts` — Verify Setup
+
+Checks:
+1. Node.js version >= 18
+2. At least one agent config file has `pro-ui-feedbacks` entry
+3. `npx pro-ui-feedbacks-mcp --version` works
+4. Port 4747 is available
+
+Output: Green checkmarks or red X with fix suggestions.
+
+### 5. `tsup.config.ts` Update
+
+Update entry points to include commands:
+
+```typescript
+export default defineConfig({
+  entry: ['src/cli.ts', 'src/index.ts'],
+  format: ['esm'],
+  dts: true,
+  clean: true,
+  sourcemap: true,
+  target: 'node18',
+});
+```
+
+**Note:** Shebang should only be on cli.ts. Use tsup `onSuccess` or manually add shebang in build script if tsup doesn't support per-entry banners. Alternative: add shebang directly in `src/cli.ts` source — tsup preserves it.
+
+### 6. `README.md`
+
+Sections:
+- What is this?
+- Quick Start (npx)
+- Installation (npm install -g)
+- Agent Configuration (Claude Code, Cursor, Copilot, Windsurf)
+- Available MCP Tools
+- HTTP API Reference
+- CLI Commands
+- Programmatic Usage
+- License
+
+### 7. Pre-publish Checklist
+
+```bash
+npm run build          # Verify build
+npm pack --dry-run     # Check what's included
+node dist/cli.js       # Test CLI
+npm publish            # Publish (when ready)
+```
+
+## Todo
+
+- [ ] Create src/index.ts with startServer()
+- [ ] Create src/cli.ts with command routing
+- [ ] Create src/commands/init.ts
+- [ ] Create src/commands/doctor.ts
+- [ ] Update tsup.config.ts for shebang handling
+- [ ] Write README.md
+- [ ] Test `npm run build && node dist/cli.js`
+- [ ] Test `npx` flow locally with `npm link`
+- [ ] Verify package contents with `npm pack --dry-run`
+
+## Success Criteria
+
+- `npx pro-ui-feedbacks-mcp` starts MCP + HTTP servers
+- `npx pro-ui-feedbacks-mcp init` detects and configures at least 1 agent
+- `npx pro-ui-feedbacks-mcp doctor` reports setup status
+- `npm pack --dry-run` shows only dist/ files
+- README covers all usage scenarios
+
+## Risk Assessment
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Agent config format changes | Medium | Document manual config as fallback |
+| init overwrites user's existing MCP config | High | Read → merge → write, never overwrite |
+| shebang not preserved by tsup | Low | Add shebang in source file directly |
+
+## Security Considerations
+
+- `init` reads/writes user config files — must merge, never overwrite
+- `init` should confirm before writing
+- No secrets or tokens involved
+- `npm pack` must only include `dist/` (enforced by `"files"` field)
+
+## Next Steps
+
+After all phases complete:
+1. End-to-end test with Claude Code
+2. Test with Cursor
+3. Publish to npm
+4. Create GitHub repo with CI
+</file>
+
+<file path="plans/260208-0019-mcp-server-implementation/plan.md">
+---
+title: "MCP Server Implementation - pro-ui-feedbacks-mcp"
+description: "Build npm-publishable MCP server for UI feedback processing by AI agents"
+status: in_progress
+priority: P1
+effort: 6h
+branch: main
+tags: [mcp, npm, typescript, ai-agents, ui-feedback]
+created: 2026-02-08
+last_updated: 2026-02-08
+---
+
+# MCP Server Implementation Plan
+
+## Overview
+
+Build `pro-ui-feedbacks-mcp` — an npm package that runs an MCP server (stdio) + HTTP API server sharing an in-memory store. AI agents connect via stdio to query/process UI feedback submitted via HTTP.
+
+**Architecture:** `HTTP API → Shared Store → MCP Server (stdio) → AI Agent`
+
+## References
+
+- [Brainstorm Report](../reports/brainstorm-260208-0019-mcp-project-structure.md)
+- [SDK API Research](../reports/researcher-260208-0032-mcp-typescript-sdk-v1x-api.md)
+
+## Tech Stack
+
+| Component | Choice |
+|-----------|--------|
+| SDK | `@modelcontextprotocol/sdk` v1.26.x |
+| Schema | `zod` v4 |
+| Build | `tsup` |
+| Test | `vitest` |
+| Runtime | Node.js >=18, ESM |
+
+## Phases
+
+| # | Phase | Status | Effort | File |
+|---|-------|--------|--------|------|
+| 1 | Project Scaffolding | done | 1h | [phase-01-project-scaffolding.md](./phase-01-project-scaffolding.md) |
+| 2 | Core Types & Store | pending | 1h | [phase-02-core-types-and-store.md](./phase-02-core-types-and-store.md) |
+| 3 | MCP Server & Tools | pending | 2h | [phase-03-mcp-server-and-tools.md](./phase-03-mcp-server-and-tools.md) |
+| 4 | HTTP API Server | pending | 1h | [phase-04-http-api-server.md](./phase-04-http-api-server.md) |
+| 5 | CLI & npm Publishing | pending | 1h | [phase-05-cli-and-npm-publishing.md](./phase-05-cli-and-npm-publishing.md) |
+
+## Success Criteria
+
+1. `npx pro-ui-feedbacks-mcp` starts both servers
+2. HTTP POST creates feedback, MCP tools query it
+3. Works with Claude Code, Cursor, Copilot
+4. Publishable to npm
+5. All tests pass
+</file>
+
+<file path="plans/reports/brainstorm-260208-0019-mcp-project-structure.md">
+# Brainstorm: MCP Project Structure for UI Feedbacks
+
+**Date:** 2026-02-08
+**Status:** Agreed
+**Type:** Architecture Brainstorm
+
+---
+
+## Problem Statement
+
+Build an MCP (Model Context Protocol) server as an npm package (`pro-ui-feedbacks-mcp`) that:
+- Receives UI visual annotations/feedback via HTTP API
+- Exposes MCP tools for AI agents to query, process, and resolve feedback
+- Publishable on npm with `npx` support
+- Compatible with: Claude Code, Codex, Copilot, Cursor, Windsurf, Antigravity, and any MCP-compatible agent
+- MVP scope: core server + essential tools, iterate later
+
+## Decisions Made
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Use case | Visual annotations | Similar to agentation-mcp pattern |
+| Transport | stdio only | Simplest, compatible with all local agents |
+| Architecture | MCP server + HTTP API | No browser ext in MVP, HTTP receives feedback |
+| Data input | HTTP API endpoint | Flexible, any source can POST feedback |
+| Scope | MVP first | 3-5 core tools, publish, then iterate |
+
+---
+
+## Recommended Architecture
+
+### Pattern: `HTTP API → Shared Store → MCP Server (stdio) → AI Agent`
+
+```
+┌──────────────────┐     ┌─────────────────┐     ┌──────────────────┐
+│  External Source  │     │   MCP Server     │     │    AI Agent       │
+│  (browser ext,   │────▶│  ┌────────────┐  │◀───▶│  (Claude Code,   │
+│   web form,      │ HTTP│  │ Data Store  │  │stdio│   Cursor, etc.)  │
+│   API client)    │     │  └────────────┘  │     │                  │
+└──────────────────┘     └─────────────────┘     └──────────────────┘
+```
+
+Key insight from agentation-mcp: **single process runs both HTTP server (for receiving data) and MCP server (for agent communication)**. This keeps deployment simple — one `npx` command starts everything.
+
+### Project Structure
+
+```
+pro-ui-feedbacks-mcp/
+├── src/
+│   ├── index.ts              # Main entry - starts both servers
+│   ├── cli.ts                # CLI entry with shebang (#!/usr/bin/env node)
+│   ├── server/
+│   │   ├── mcp-server.ts     # McpServer setup, tool registration
+│   │   └── http-server.ts    # HTTP API for receiving feedback
+│   ├── tools/
+│   │   ├── list-sessions.ts       # List active feedback sessions
+│   │   ├── get-feedback.ts        # Get feedback details
+│   │   ├── get-pending.ts         # Get unresolved feedback
+│   │   ├── resolve-feedback.ts    # Mark feedback as resolved
+│   │   └── acknowledge-feedback.ts # Mark as seen
+│   ├── store/
+│   │   ├── store.ts          # Store interface
+│   │   └── memory-store.ts   # In-memory store (MVP)
+│   └── types/
+│       └── index.ts          # TypeScript types (exported for consumers)
+├── dist/                     # Compiled output
+├── package.json
+├── tsconfig.json
+├── tsup.config.ts            # Build config (tsup for simplicity)
+└── README.md
+```
+
+### package.json (Key Fields)
+
+```jsonc
+{
+  "name": "pro-ui-feedbacks-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "pro-ui-feedbacks-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "dependencies": {
+    "@modelcontextprotocol/server": "^1.x",  // stable v1 until v2 ships Q1 2026
+    "zod": "^3.25"
+  },
+  "devDependencies": {
+    "typescript": "^5.x",
+    "tsup": "^8.x",
+    "@types/node": "^22.x",
+    "vitest": "^3.x"
+  }
+}
+```
+
+**Why `@modelcontextprotocol/server` v1.x:** v2 is pre-alpha. v1 is production-recommended, receives bug fixes for 6+ months after v2 ships.
+
+### CLI Entry (`cli.ts`)
+
+```typescript
+#!/usr/bin/env node
+import { startServer } from './index.js';
+
+const args = process.argv.slice(2);
+const command = args[0];
+
+switch (command) {
+  case 'server':
+    startServer({ port: getPort(args), mcpOnly: args.includes('--mcp-only') });
+    break;
+  case 'init':
+    // Auto-configure for detected AI agents
+    initSetup();
+    break;
+  case 'doctor':
+    // Verify configuration
+    checkSetup();
+    break;
+  default:
+    startServer({ port: 4747 }); // default: start both
+}
+```
+
+### Data Model
+
+```typescript
+// Feedback intent & severity (inspired by agentation)
+type FeedbackIntent = 'fix' | 'change' | 'question' | 'approve';
+type FeedbackSeverity = 'blocking' | 'important' | 'suggestion';
+type FeedbackStatus = 'pending' | 'acknowledged' | 'resolved' | 'dismissed';
+
+interface Feedback {
+  id: string;
+  sessionId: string;
+  comment: string;
+  // Visual context
+  element?: string;           // e.g. "button.cta"
+  elementPath?: string;       // e.g. "body > main > .hero > button"
+  screenshotUrl?: string;     // optional screenshot
+  pageUrl: string;            // page where feedback was created
+  // Classification
+  intent: FeedbackIntent;
+  severity: FeedbackSeverity;
+  status: FeedbackStatus;
+  // Metadata
+  createdAt: string;
+  resolvedAt?: string;
+  resolution?: string;        // AI agent's resolution summary
+}
+
+interface Session {
+  id: string;
+  pageUrl: string;
+  title: string;
+  feedbacks: Feedback[];
+  createdAt: string;
+}
+```
+
+### MCP Tools (MVP - 5 tools)
+
+| Tool | Description | Priority |
+|------|-------------|----------|
+| `list_sessions` | List all active feedback sessions | P0 |
+| `get_pending_feedback` | Get all unresolved feedback (across sessions or per session) | P0 |
+| `acknowledge_feedback` | Mark feedback as "seen" by agent | P0 |
+| `resolve_feedback` | Mark as resolved with summary of what was done | P0 |
+| `dismiss_feedback` | Reject with reasoning | P1 |
+
+### HTTP API Endpoints (MVP)
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `POST` | `/api/feedback` | Submit new feedback |
+| `GET` | `/api/sessions` | List sessions |
+| `GET` | `/api/sessions/:id` | Get session with feedbacks |
+| `GET` | `/api/health` | Health check |
+
+### How Users Install & Connect
+
+**Install:**
+```bash
+npm install -g pro-ui-feedbacks-mcp
+# or use directly
+npx pro-ui-feedbacks-mcp
+```
+
+**Agent Configuration (universal pattern):**
+
+All MCP-compatible agents use similar JSON config:
+
+```jsonc
+// Claude Code: ~/.claude/mcp.json (or claude_desktop_config.json)
+// Cursor: .cursor/mcp.json
+// Windsurf: .codeium/windsurf/mcp_config.json
+// Copilot: .vscode/mcp.json
+{
+  "mcpServers": {
+    "pro-ui-feedbacks": {
+      "command": "npx",
+      "args": ["pro-ui-feedbacks-mcp"]
+    }
+  }
+}
+```
+
+**Auto-setup (`init` command):**
+```bash
+npx pro-ui-feedbacks-mcp init
+# Detects installed agents, writes config automatically
+```
+
+---
+
+## Evaluated Approaches
+
+### Approach A: Single-file MCP server (rejected)
+- Pros: Simplest, fastest to build
+- Cons: Can't scale, no HTTP API, no modularity
+- **Verdict:** Too simple for the requirements
+
+### Approach B: Monorepo with separate packages (rejected)
+- Pros: Clean separation, independent versioning
+- Cons: Over-engineered for MVP, complex setup
+- **Verdict:** YAGNI - premature complexity
+
+### Approach C: Single package, modular source (selected)
+- Pros: Simple to publish, easy to understand, modular enough to grow
+- Cons: All code in one package
+- **Verdict:** Perfect for MVP. Can extract to monorepo later if needed
+
+---
+
+## Implementation Considerations
+
+### Build Tool: tsup
+- Fast, zero-config bundler for TypeScript
+- Produces both ESM output + type declarations
+- Single command: `tsup src/cli.ts src/index.ts --format esm --dts`
+
+### Testing: vitest
+- Fast, TypeScript-native
+- Good for both unit tests and integration tests
+
+### Store Strategy
+- MVP: In-memory store (data lost on restart — acceptable for MVP)
+- V2: SQLite via `better-sqlite3` for persistence
+- Store interface pattern allows swapping without changing tools
+
+### Security Considerations
+- HTTP server binds to `localhost` only (no 0.0.0.0)
+- Validate Origin header on HTTP requests
+- No auth in MVP (local-only), add API key auth for remote deployment later
+
+### Agent Compatibility Matrix
+
+| Agent | Config Location | Transport | Status |
+|-------|----------------|-----------|--------|
+| Claude Code | `~/.claude/mcp.json` | stdio | Supported |
+| Claude Desktop | `claude_desktop_config.json` | stdio | Supported |
+| Cursor | `.cursor/mcp.json` | stdio | Supported |
+| Copilot (VS Code) | `.vscode/mcp.json` | stdio | Supported |
+| Windsurf | `.codeium/windsurf/mcp_config.json` | stdio | Supported |
+| Codex | CLI flag / config | stdio | Supported |
+| JetBrains AI | IDE settings | stdio | Supported |
+
+All use the same `npx` command pattern — stdio transport is universally supported.
+
+---
+
+## Success Metrics
+
+1. `npx pro-ui-feedbacks-mcp` starts successfully
+2. AI agent can call `list_sessions` and `get_pending_feedback`
+3. HTTP POST to `/api/feedback` creates feedback visible to agent
+4. Package installable via `npm install -g pro-ui-feedbacks-mcp`
+5. Works with at least 3 different AI agents (Claude Code, Cursor, Copilot)
+
+## Risks
+
+| Risk | Mitigation |
+|------|------------|
+| In-memory store loses data on restart | Acceptable for MVP; SQLite in V2 |
+| SDK v1 → v2 migration | v1 stable until mid-2026; migration guide will be provided |
+| No browser extension = no easy feedback input | HTTP API is flexible enough; browser ext is V2 feature |
+
+## Next Steps
+
+1. Initialize npm project with TypeScript + tsup
+2. Implement core MCP server with 5 tools
+3. Implement HTTP API server (4 endpoints)
+4. Implement in-memory store
+5. Add CLI with `server`, `init`, `doctor` commands
+6. Test with Claude Code + Cursor
+7. Publish to npm
+
+---
+
+## Sources
+
+- [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- [@modelcontextprotocol/sdk on npm](https://www.npmjs.com/package/@modelcontextprotocol/sdk)
+- [MCP Transports Specification](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports)
+- [Agentation MCP Reference](https://agentation.dev/mcp)
+- [VS Code MCP Server Setup](https://code.visualstudio.com/docs/copilot/customization/mcp-servers)
+- [Build MCP Server Guide](https://modelcontextprotocol.io/docs/develop/build-server)
+</file>
+
+<file path="plans/reports/code-reviewer-260208-0043-phase01-scaffolding-review.md">
+# Code Review: pro-ui-feedbacks-mcp Phase 01
+
+**Score: 8.5/10**
+
+## Scope
+
+- Files reviewed: 14 TypeScript source files, 2 test files, 3 config files
+- Lines analyzed: ~750 LOC
+- Review focus: Full codebase - Phase 01 scaffolding implementation
+- Updated plans: phase-01-project-scaffolding.md
+
+## Overall Assessment
+
+Solid MVP implementation. Code is clean, well-structured, type-safe. Successfully implements MCP server with HTTP API. TypeScript strictness enabled, no compilation errors, all tests passing (27/27). Localhost-only binding correct. Minor npm metadata gaps, one security advisory (CORS wildcard), performance considerations for production scale.
+
+## Critical Issues
+
+None.
+
+## High Priority Findings
+
+### 1. CORS Wildcard in Production Context
+
+**Location:** `src/server/http-server.ts:19`
+
+```typescript
+res.setHeader('Access-Control-Allow-Origin', '*');
+```
+
+**Issue:** Wildcard CORS allows any origin to call API. While localhost-only binding (127.0.0.1) mitigates external access, browser-based tools on localhost can still access from any page.
+
+**Impact:** Medium - potential for CSRF if malicious page runs on localhost
+
+**Fix:** Add configurable CORS origins:
+
+```typescript
+export interface HttpServerOptions {
+  port: number;
+  store: Store;
+  allowedOrigins?: string[]; // default: ['http://localhost', 'http://127.0.0.1']
+}
+```
+
+### 2. npm Package Metadata Missing
+
+**Location:** `package.json`
+
+**Missing fields:**
+- `author`
+- `repository`
+- `bugs`
+- `homepage`
+
+**Impact:** Medium - reduces discoverability, trust on npm registry
+
+**Fix:** Add standard metadata before publishing.
+
+### 3. URL Constructor Error Handling
+
+**Location:** `src/store/memory-store.ts:104`
+
+```typescript
+title: new URL(pageUrl).pathname || pageUrl,
+```
+
+**Issue:** `new URL()` throws on invalid URLs. CreateFeedbackSchema validates URL format, but fallback risky if validation bypassed.
+
+**Impact:** Low-Medium - crashes server if invalid URL reaches store
+
+**Fix:** Wrap in try-catch or trust validation layer (current approach acceptable for MVP).
+
+## Medium Priority Improvements
+
+### 4. Memory Store Data Mutation
+
+**Location:** `src/store/memory-store.ts:63-90`
+
+```typescript
+acknowledgeFeedback(feedbackId: string): Feedback | null {
+  const feedback = this.feedbacks.get(feedbackId);
+  if (!feedback || feedback.status !== 'pending') return null;
+  feedback.status = 'acknowledged'; // Mutates internal state
+  return { ...feedback }; // Returns copy
+}
+```
+
+**Issue:** Methods mutate stored objects then return shallow copy. Pattern mixes mutation with immutability. Inconsistent with "return copy" approach.
+
+**Concern:** If returned object has nested refs, mutations could leak. Current schema is flat, so safe for now.
+
+**Recommendation:** Document mutation strategy or refactor to full immutability.
+
+### 5. Session Auto-Creation Logic
+
+**Location:** `src/store/memory-store.ts:96-109`
+
+**Issue:** Sessions auto-created based on pageUrl matching. If multiple pages have same base URL but different query params/fragments, they'll create separate sessions. Intent unclear.
+
+**Example:**
+- `https://app.com/page?v=1` → session A
+- `https://app.com/page?v=2` → session B
+
+**Recommendation:** Document session grouping strategy. Consider normalizing URLs or using explicit session IDs.
+
+### 6. HTTP Body Size Limit Constant
+
+**Location:** `src/server/http-server.ts:5`
+
+```typescript
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+```
+
+**Good:** DoS protection in place.
+
+**Concern:** 1MB generous for feedback comments. Screenshots sent as URLs (external), so body should be small.
+
+**Recommendation:** Consider 100KB limit (still generous for text + metadata).
+
+### 7. No Input Sanitization for Resolution/Reason Strings
+
+**Location:** `src/store/memory-store.ts:77, 88`
+
+```typescript
+feedback.resolution = resolution;
+feedback.resolution = reason;
+```
+
+**Issue:** Strings stored as-is. No length limits enforced beyond Zod schema on feedback creation. MCP tool inputs (`resolution`, `reason`) not validated.
+
+**Impact:** Low - internal data store, but agents could inject long strings causing memory issues.
+
+**Recommendation:** Add max length validation in tool handlers (e.g., 5000 chars).
+
+### 8. Error Handling in HTTP Server
+
+**Location:** `src/server/http-server.ts:75-78`
+
+```typescript
+catch (err) {
+  console.error('[HTTP] Error:', err);
+  json(res, 500, { error: 'Internal server error' });
+}
+```
+
+**Good:** Generic error message prevents info leakage.
+
+**Concern:** All errors return 500. Client can't distinguish validation (400) from parse errors from unexpected crashes.
+
+**Current:** `parseBody` rejects with specific errors, but they're caught and masked. Acceptable for MVP.
+
+### 9. MCP Tool Input Schema Format
+
+**Location:** `src/tools/get-pending-feedback.ts:11-16`
+
+```typescript
+inputSchema: {
+  sessionId: z.string().optional().describe('...'),
+}
+```
+
+**Issue:** Direct Zod schema passed to `registerTool`. SDK expects JSONSchema7, but accepts Zod directly via type coercion. Works but non-standard.
+
+**Status:** Acceptable per SDK v1.x patterns. Zod-to-JSONSchema conversion happens internally.
+
+### 10. CLI Port Parsing No Validation
+
+**Location:** `src/cli.ts:9-15`
+
+```typescript
+function getPort(): number {
+  const portIdx = args.indexOf('--port');
+  if (portIdx !== -1 && args[portIdx + 1]) {
+    return parseInt(args[portIdx + 1], 10);
+  }
+  return 4747;
+}
+```
+
+**Issue:** `parseInt` returns `NaN` for non-numeric input. No range check (1-65535).
+
+**Impact:** Low - crashes later on server.listen with cryptic error.
+
+**Fix:** Add validation:
+
+```typescript
+const parsed = parseInt(args[portIdx + 1], 10);
+if (isNaN(parsed) || parsed < 1 || parsed > 65535) {
+  console.error('Error: --port must be 1-65535');
+  process.exit(1);
+}
+return parsed;
+```
+
+### 11. tsup Shebang Banner Applied to All Entries
+
+**Location:** `tsup.config.ts:9-12` (from plan, not implemented)
+
+**Status:** Plan specified banner, but actual config omits it. Shebang still present in `dist/cli.js`.
+
+**Finding:** tsup auto-adds shebang for bin entries. Config simpler without explicit banner. Current approach correct.
+
+### 12. No Linter Config
+
+**Finding:** No ESLint/Biome config. TypeScript strict mode provides type safety but no style enforcement.
+
+**Impact:** Low - code is clean, consistent style observed.
+
+**Recommendation:** Add ESLint with recommended rules before team expansion.
+
+## Low Priority Suggestions
+
+### 13. Test Coverage Gaps
+
+**Coverage:** 27 tests, core functionality covered.
+
+**Missing:**
+- MCP tool registration (unit tests for each tool without full server)
+- CLI command parsing edge cases (invalid commands, --help)
+- `doctor` and `init` commands (file system operations)
+- HTTP OPTIONS preflight tested, but no test for non-CORS requests
+- Error path for MAX_BODY_SIZE exceeded
+
+**Recommendation:** Add integration test for MCP stdio transport.
+
+### 14. Console.error for Non-Errors
+
+**Locations:** Throughout CLI and servers
+
+```typescript
+console.error('[MCP] Server connected via stdio');
+console.error('[HTTP] Server listening on...');
+```
+
+**Issue:** Info logs sent to stderr. Convention: use stderr for errors, stdout for output (though stdout reserved for MCP JSON-RPC).
+
+**Current:** Acceptable for MCP context (stdout must be clean). Consider structured logging library for production.
+
+### 15. Hardcoded Agent Paths in init/doctor
+
+**Location:** `src/commands/init.ts:17-30`, `doctor.ts:24-32`
+
+**Issue:** Hardcoded paths for Claude/Cursor/VSCode/Windsurf. Brittle if agents change config locations.
+
+**Recommendation:** Document supported agents, version this list.
+
+### 16. Session Title Extraction
+
+**Location:** `src/store/memory-store.ts:104`
+
+```typescript
+title: new URL(pageUrl).pathname || pageUrl,
+```
+
+**Issue:** Title is pathname (`/page` or `/`). Not user-friendly. Fallback to full URL if pathname empty.
+
+**Better:** Extract hostname + pathname or allow custom title in CreateFeedbackInput.
+
+### 17. No README.md
+
+**Finding:** No README in project root.
+
+**Impact:** Low - MVP/internal project. Critical before publishing.
+
+**Recommendation:** Add before npm publish with usage, examples, API docs.
+
+## Positive Observations
+
+1. **TypeScript Strict Mode:** Enabled, no type errors. Good type coverage.
+2. **Localhost Binding:** HTTP server correctly binds to 127.0.0.1 (security win).
+3. **Input Validation:** Zod schemas validate all HTTP inputs, prevents injection.
+4. **DoS Protection:** MAX_BODY_SIZE limit prevents large payloads.
+5. **Immutable Returns:** Store methods return copies, not internal refs (mostly).
+6. **MCP SDK Usage:** Correct for v1.x - stdio transport, tool registration, JSON-RPC compliance.
+7. **ESM First:** Proper ESM setup, `.js` extensions in imports, `"type": "module"`.
+8. **Build Pipeline:** tsup config correct, shebang added, `.d.ts` generated.
+9. **Test Quality:** 27 tests cover core flows, edge cases (duplicate sessions, state transitions).
+10. **YAGNI/KISS:** No over-engineering. MVP implements exactly what's needed.
+11. **Error Handling:** Store methods return null on invalid ops (no throws in core logic).
+12. **Status Machine:** Feedback status transitions enforced (pending → acknowledged → resolved/dismissed).
+
+## Recommended Actions
+
+### Immediate (Before Publishing)
+
+1. Add package.json metadata (author, repository, homepage, bugs)
+2. Create README.md with usage examples
+3. Add LICENSE file (currently declared MIT in package.json)
+4. Validate CLI --port input range
+5. Document session grouping behavior
+
+### Short Term
+
+1. Configure CORS origins (replace wildcard)
+2. Add ESLint config
+3. Add max length validation for resolution/reason in MCP tools
+4. Consider reducing MAX_BODY_SIZE to 100KB
+5. Add integration test for MCP stdio transport
+6. Test npm pack before first publish
+
+### Long Term
+
+1. Consider SQLite store for persistence
+2. Add structured logging (pino/winston)
+3. Add telemetry/metrics (optional)
+4. Version agent config paths
+5. Support custom session titles
+
+## Metrics
+
+- **Type Coverage:** 100% (strict mode, no `any` usage)
+- **Test Coverage:** Core flows covered, ~70% estimated (no coverage report)
+- **Linting Issues:** N/A (no linter configured)
+- **Build:** ✅ Success
+- **Tests:** ✅ 27/27 passed
+- **TypeScript:** ✅ No errors
+- **SLOC:** ~750 lines
+
+## OWASP Security Checklist
+
+| Concern | Status | Notes |
+|---------|--------|-------|
+| Injection | ✅ Good | Zod validation, no SQL/command injection vectors |
+| Auth | N/A | No auth (localhost trust model) |
+| Sensitive Data | ✅ Good | No secrets, localhost only |
+| XSS | ✅ Good | JSON API, no HTML rendering |
+| CSRF | ⚠️ Medium | CORS wildcard - see #1 |
+| Security Misconfig | ✅ Good | Localhost binding correct |
+| Vulnerable Deps | ✅ Good | No known CVEs in @modelcontextprotocol/sdk or zod |
+| Logging | ✅ Good | No sensitive data logged |
+| Input Validation | ✅ Good | Zod schemas comprehensive |
+| DoS | ✅ Good | Body size limit enforced |
+
+## Architecture Compliance
+
+- **YAGNI:** ✅ No unused features, no premature abstractions
+- **KISS:** ✅ Simple Store interface, clear separation of concerns
+- **DRY:** ✅ Tool registration pattern repeated but simple, acceptable
+
+## npm Package Correctness
+
+- ✅ `"type": "module"` set
+- ✅ `bin` field points to dist/cli.js (shebang present)
+- ✅ `main` and `types` point to dist/index.js + .d.ts
+- ✅ `exports` field correct for ESM
+- ✅ `files: ["dist"]` ensures clean publish
+- ✅ `engines.node: ">=18"` documented
+- ✅ `prepublishOnly` runs build
+- ⚠️ Missing: author, repository, bugs, homepage
+- ⚠️ Missing: README.md, LICENSE file
+
+## MCP SDK v1.x Compliance
+
+- ✅ Correct imports from `@modelcontextprotocol/sdk`
+- ✅ `.js` extensions in all imports
+- ✅ `McpServer` + `StdioServerTransport` usage correct
+- ✅ Tool registration via `registerTool` with Zod schemas
+- ✅ Tool handlers return `{ content: [...], isError?: boolean }`
+- ✅ stdio reserved for JSON-RPC (logs to stderr)
+
+## Phase 01 Plan Compliance
+
+Checked against `phase-01-project-scaffolding.md`:
+
+- ✅ npm project initialized with ESM
+- ✅ TypeScript configured for ESM + bundler resolution
+- ✅ tsup dual entry points (cli.ts + index.ts)
+- ✅ vitest setup
+- ✅ Directory structure matches spec
+- ✅ All placeholder files created and implemented
+- ✅ Dependencies installed
+- ✅ Build succeeds
+- ✅ Success criteria met: dist/ generated, CLI runs, structure correct
+- ⚠️ Plan TODO list not updated (still shows unchecked)
+
+## Plan Update
+
+Updated `phase-01-project-scaffolding.md` implementation status:
+- Implementation: ✅ completed
+- Review: ✅ completed
+
+## Unresolved Questions
+
+1. Intended session grouping strategy - should query params be normalized?
+2. Target npm registry - public npmjs.org or private?
+3. Will CORS origins be configurable via env vars or passed to startServer()?
+4. Is mutation + copy return pattern in Store intentional architectural choice?
+
+## Next Steps
+
+1. Address package.json metadata + README before publish
+2. Validate CLI port input (quick win)
+3. Proceed to Phase 02 per plan (if phases defined)
+4. Consider production-readiness checklist (CORS, logging, monitoring)
+</file>
+
+<file path="plans/reports/researcher-260208-0032-mcp-typescript-sdk-v1x-api.md">
+# MCP TypeScript SDK v1.x API Research Report
+
+**Generated:** 2026-02-08
+**SDK Version:** v1.26.0 (latest v1.x)
+**Branch:** https://github.com/modelcontextprotocol/typescript-sdk/tree/v1.x
+
+## Executive Summary
+
+MCP TypeScript SDK v1.x uses **single package** `@modelcontextprotocol/sdk` with subpath exports. All imports use `.js` extension for ESM compatibility. Zod v3.25+ or v4.0 required as peer dependency.
+
+---
+
+## 1. Package & Installation
+
+```bash
+npm install @modelcontextprotocol/sdk zod
+```
+
+**Package name:** `@modelcontextprotocol/sdk` (single package, not separate `@modelcontextprotocol/server`)
+**Version:** 1.26.0
+**Peer deps:** `zod` ^3.25 || ^4.0 (required)
+**Type:** ESM (`"type": "module"`)
+**Node:** >=18
+
+---
+
+## 2. Import Paths (Exact)
+
+### Server Components
+
+```typescript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
+```
+
+### Types
+
+```typescript
+import {
+  CallToolResult,
+  ReadResourceResult,
+  GetPromptResult,
+  ResourceLink,
+  PrimitiveSchemaDefinition
+} from "@modelcontextprotocol/sdk/types.js";
+```
+
+### Zod Import
+
+```typescript
+import * as z from "zod/v4";  // Recommended (SDK uses v4 internally)
+// OR
+import { z } from "zod";      // Also works with v3.25+
+```
+
+**Critical:** All imports **MUST** include `.js` extension for ESM compatibility.
+
+---
+
+## 3. McpServer Instantiation
+
+### Minimal
+
+```typescript
+const server = new McpServer({
+  name: "my-server",
+  version: "1.0.0"
+});
+```
+
+### With Capabilities
+
+```typescript
+const server = new McpServer(
+  {
+    name: "my-server",
+    version: "1.0.0",
+    icons: [{ src: "./icon.svg", sizes: ["512x512"], mimeType: "image/svg+xml" }],
+    websiteUrl: "https://example.com"
+  },
+  {
+    capabilities: {
+      logging: {},
+      tasks: { requests: { tools: { call: {} } } }
+    }
+  }
+);
+```
+
+---
+
+## 4. Tool Definition API
+
+### Method Signature
+
+```typescript
+server.registerTool(
+  name: string,
+  config: {
+    title?: string;              // Display name (optional)
+    description: string;          // Required
+    inputSchema: ZodObjectShape;  // Zod schema object
+    outputSchema?: ZodObjectShape; // Optional
+    annotations?: {
+      title?: string;
+      readOnlyHint?: boolean;
+      openWorldHint?: boolean;
+    };
+  },
+  handler: (params: InferredFromZod, extra?: ExtraContext) => Promise<CallToolResult>
+)
+```
+
+### Examples
+
+#### Basic Tool
+
+```typescript
+server.registerTool(
+  'greet',
+  {
+    title: 'Greeting Tool',
+    description: 'A simple greeting tool',
+    inputSchema: {
+      name: z.string().describe('Name to greet')
+    }
+  },
+  async ({ name }) => {
+    return {
+      content: [{ type: 'text', text: `Hello, ${name}!` }]
+    };
+  }
+);
+```
+
+#### Tool with Output Schema
+
+```typescript
+server.registerTool(
+  'get_weather',
+  {
+    description: 'Get weather information for a city',
+    inputSchema: {
+      city: z.string().describe('City name'),
+      country: z.string().describe('Country code')
+    },
+    outputSchema: {
+      temperature: z.object({
+        celsius: z.number(),
+        fahrenheit: z.number()
+      }),
+      conditions: z.enum(['sunny', 'cloudy', 'rainy', 'stormy', 'snowy']),
+      humidity: z.number().min(0).max(100)
+    }
+  },
+  async ({ city, country }) => {
+    const structuredContent = {
+      temperature: { celsius: 22, fahrenheit: 72 },
+      conditions: 'sunny',
+      humidity: 65
+    };
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(structuredContent) }],
+      structuredContent  // Optional: for structured output
+    };
+  }
+);
+```
+
+#### Complex Schema Example
+
+```typescript
+server.registerTool(
+  'collect-user-info',
+  {
+    description: 'Collect user information through form elicitation',
+    inputSchema: {
+      infoType: z.enum(['contact', 'preferences', 'feedback'])
+        .describe('Type of information to collect')
+    }
+  },
+  async ({ infoType }, extra) => {
+    // Handler implementation
+    return {
+      content: [{ type: 'text', text: 'Success' }]
+    };
+  }
+);
+```
+
+---
+
+## 5. Transport Connection
+
+### Stdio (Local/Process-spawned)
+
+```typescript
+const transport = new StdioServerTransport();
+await server.connect(transport);
+```
+
+### Streamable HTTP (Remote/Recommended)
+
+```typescript
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+const transport = new StreamableHTTPServerTransport({
+  // Configuration options
+});
+await server.connect(transport);
+```
+
+### Express Integration
+
+```typescript
+import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
+
+const app = createMcpExpressApp(); // Auto DNS rebinding protection for localhost
+app.listen(3000);
+```
+
+---
+
+## 6. Minimal Working Example (Complete)
+
+**File:** `server.ts`
+
+```typescript
+#!/usr/bin/env node
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import * as z from "zod/v4";
+
+// Create server
+const server = new McpServer({
+  name: "minimal-server",
+  version: "1.0.0"
+});
+
+// Register tool
+server.registerTool(
+  'echo',
+  {
+    description: 'Echo back the input message',
+    inputSchema: {
+      message: z.string().describe('Message to echo')
+    }
+  },
+  async ({ message }) => {
+    return {
+      content: [{ type: 'text', text: message }]
+    };
+  }
+);
+
+// Connect transport
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('Server running on stdio');
+}
+
+main().catch(error => {
+  console.error('Server error:', error);
+  process.exit(1);
+});
+```
+
+**Run:**
+```bash
+npx tsx server.ts
+```
+
+---
+
+## 7. Key Differences from Community Examples
+
+| Aspect | v1.x Official | Community Examples Found |
+|--------|--------------|--------------------------|
+| Package | `@modelcontextprotocol/sdk` | Sometimes shown as `@modelcontextprotocol/server` (incorrect) |
+| Server class | `McpServer` | Sometimes `Server` (older API) |
+| Method | `server.registerTool()` | Sometimes `server.tool()` or `server.setRequestHandler()` |
+| Imports | Subpath exports (`.../mcp.js`) | Sometimes root imports |
+| Zod import | `zod/v4` recommended | Often `zod` |
+
+**Important:** Community tutorials may show v2 pre-alpha or old patterns. Always use v1.x branch docs.
+
+---
+
+## 8. Additional Features
+
+### Resources
+
+```typescript
+server.registerResource(
+  'config',
+  'config://app',
+  {
+    title: 'Application Config',
+    description: 'Application configuration data',
+    mimeType: 'text/plain'
+  },
+  async () => {
+    return {
+      contents: [{
+        uri: 'config://app',
+        mimeType: 'text/plain',
+        text: 'config data'
+      }]
+    };
+  }
+);
+```
+
+### Prompts
+
+```typescript
+server.registerPrompt(
+  'prompt-name',
+  {
+    title: 'Prompt Title',
+    description: 'Prompt description'
+  },
+  async () => {
+    return {
+      messages: [
+        { role: 'user', content: { type: 'text', text: 'Prompt content' } }
+      ]
+    };
+  }
+);
+```
+
+### Logging
+
+```typescript
+await server.sendLoggingMessage(
+  {
+    level: 'info',
+    data: 'Log message'
+  },
+  sessionId  // Optional
+);
+```
+
+---
+
+## 9. TypeScript Configuration
+
+**tsconfig.json:**
+```json
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "types": ["node"]
+  }
+}
+```
+
+**package.json:**
+```json
+{
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}
+```
+
+---
+
+## 10. Official Examples Location
+
+All examples in SDK repo: `src/examples/`
+
+**Key files:**
+- `src/__fixtures__/testServer.ts` - Minimal stdio example
+- `src/examples/server/mcpServerOutputSchema.ts` - Output schema example
+- `src/examples/server/toolWithSampleServer.ts` - Tool with sampling
+- `src/examples/server/simpleStreamableHttp.ts` - Full-featured HTTP server
+
+---
+
+## Sources
+
+- [MCP TypeScript SDK GitHub](https://github.com/modelcontextprotocol/typescript-sdk)
+- [v1.x Branch Documentation](https://github.com/modelcontextprotocol/typescript-sdk/tree/v1.x)
+- [MCP SDK npm Package](https://www.npmjs.com/package/@modelcontextprotocol/sdk)
+- [MCP Documentation](https://modelcontextprotocol.io/docs/develop/build-server)
+- [DEV Community: Building MCP Servers](https://dev.to/shadid12/how-to-build-mcp-servers-with-typescript-sdk-1c28)
+- [DEV Community: Star Wars API Example](https://dev.to/glaucia86/from-zero-to-mcp-building-a-model-context-protocol-server-with-typescript-and-the-star-wars-api-1kdi)
+
+---
+
+## Unresolved Questions
+
+None - all requirements answered with verified code from official v1.x branch.
+</file>
+
+<file path="src/commands/doctor.ts">
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
+
+/**
+ * Verify MCP server setup and configuration.
+ */
+export async function runDoctor(): Promise<void> {
+  console.error('pro-ui-feedbacks-mcp doctor\n');
+  let issues = 0;
+
+  // Check Node.js version
+  const nodeVersion = parseInt(process.versions.node.split('.')[0], 10);
+  if (nodeVersion >= 18) {
+    console.error(`  [✓] Node.js v${process.versions.node} (>=18 required)`);
+  } else {
+    console.error(`  [✗] Node.js v${process.versions.node} — v18+ required`);
+    issues++;
+  }
+
+  // Check agent configs for MCP entry
+  const home = homedir();
+  const cwd = process.cwd();
+  const configPaths = [
+    { name: 'Claude Code', path: join(home, '.claude', 'mcp.json') },
+    { name: 'Cursor', path: join(cwd, '.cursor', 'mcp.json') },
+    { name: 'VS Code / Copilot', path: join(cwd, '.vscode', 'mcp.json') },
+    {
+      name: 'Windsurf',
+      path: join(cwd, '.codeium', 'windsurf', 'mcp_config.json'),
+    },
+  ];
+
+  let hasConfig = false;
+  for (const { name, path } of configPaths) {
+    if (!existsSync(path)) continue;
+
+    try {
+      const config = JSON.parse(readFileSync(path, 'utf-8'));
+      if (config?.mcpServers?.['pro-ui-feedbacks']) {
+        console.error(`  [✓] ${name} — configured`);
+        hasConfig = true;
+      } else {
+        console.error(`  [~] ${name} — config exists but no MCP entry. Run 'init'.`);
+      }
+    } catch {
+      console.error(`  [!] ${name} — config file is invalid JSON`);
+      issues++;
+    }
+  }
+
+  if (!hasConfig) {
+    console.error("  [✗] No agent configured. Run 'npx pro-ui-feedbacks-mcp init'.");
+    issues++;
+  }
+
+  // Summary
+  console.error(
+    issues === 0
+      ? '\nAll checks passed.'
+      : `\n${issues} issue(s) found. Fix them and run doctor again.`
+  );
+}
+</file>
+
+<file path="src/commands/init.ts">
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { homedir } from 'node:os';
+
+interface AgentConfig {
+  name: string;
+  configPath: string;
+}
+
+const MCP_ENTRY = {
+  'pro-ui-feedbacks': {
+    command: 'npx',
+    args: ['pro-ui-feedbacks-mcp'],
+  },
+};
+
+function getAgentConfigs(): AgentConfig[] {
+  const home = homedir();
+  const cwd = process.cwd();
+
+  return [
+    { name: 'Claude Code', configPath: join(home, '.claude', 'mcp.json') },
+    { name: 'Cursor', configPath: join(cwd, '.cursor', 'mcp.json') },
+    { name: 'VS Code / Copilot', configPath: join(cwd, '.vscode', 'mcp.json') },
+    {
+      name: 'Windsurf',
+      configPath: join(cwd, '.codeium', 'windsurf', 'mcp_config.json'),
+    },
+  ];
+}
+
+/**
+ * Auto-detect AI agents and configure MCP server entry.
+ */
+export async function runInit(): Promise<void> {
+  console.error('pro-ui-feedbacks-mcp init\n');
+  const agents = getAgentConfigs();
+  let configured = 0;
+
+  for (const agent of agents) {
+    const dir = dirname(agent.configPath);
+    const dirExists = existsSync(dir);
+
+    if (!dirExists) {
+      console.error(`  [ ] ${agent.name} — config dir not found, skipping`);
+      continue;
+    }
+
+    try {
+      // Read existing config or start fresh
+      let config: Record<string, unknown> = {};
+      if (existsSync(agent.configPath)) {
+        config = JSON.parse(readFileSync(agent.configPath, 'utf-8'));
+      }
+
+      // Merge MCP entry
+      const mcpServers =
+        (config.mcpServers as Record<string, unknown>) ?? {};
+      if (mcpServers['pro-ui-feedbacks']) {
+        console.error(`  [✓] ${agent.name} — already configured`);
+        configured++;
+        continue;
+      }
+
+      mcpServers['pro-ui-feedbacks'] = MCP_ENTRY['pro-ui-feedbacks'];
+      config.mcpServers = mcpServers;
+
+      // Ensure directory exists and write
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(agent.configPath, JSON.stringify(config, null, 2) + '\n');
+      console.error(`  [+] ${agent.name} — configured at ${agent.configPath}`);
+      configured++;
+    } catch (err) {
+      console.error(`  [!] ${agent.name} — error: ${err}`);
+    }
+  }
+
+  console.error(`\nDone. ${configured} agent(s) configured.`);
+  if (configured === 0) {
+    console.error(
+      'No agents detected. You can manually add to your agent config:\n' +
+        JSON.stringify({ mcpServers: MCP_ENTRY }, null, 2)
+    );
+  }
+}
+</file>
+
+<file path="src/server/http-server.ts">
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { Store } from '../store/store.js';
+import { CreateFeedbackSchema } from '../types/index.js';
+
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+
+export interface HttpServerOptions {
+  port: number;
+  store: Store;
+  allowedOrigins?: string[];
+}
+
+/**
+ * Create HTTP API server for receiving feedback from external sources.
+ * Binds to 127.0.0.1 only (no external access).
+ */
+export function createHttpServer({ port, store, allowedOrigins }: HttpServerOptions) {
+  const origins = allowedOrigins ?? ['http://localhost:*', 'http://127.0.0.1:*'];
+
+  const server = createServer(async (req, res) => {
+    // CORS headers — restrict to localhost origins by default
+    const requestOrigin = req.headers.origin ?? '';
+    const isAllowed = origins.some((pattern) => {
+      if (pattern.includes('*')) {
+        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+        return regex.test(requestOrigin);
+      }
+      return pattern === requestOrigin;
+    });
+    res.setHeader(
+      'Access-Control-Allow-Origin',
+      isAllowed ? requestOrigin : origins[0].replace('*', String(port))
+    );
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = new URL(req.url ?? '/', `http://localhost:${port}`);
+    const pathname = url.pathname;
+
+    try {
+      // GET /api/health
+      if (req.method === 'GET' && pathname === '/api/health') {
+        json(res, 200, { status: 'ok' });
+        return;
+      }
+
+      // GET /api/sessions
+      if (req.method === 'GET' && pathname === '/api/sessions') {
+        json(res, 200, store.listSessions());
+        return;
+      }
+
+      // GET /api/sessions/:id
+      const sessionMatch = pathname.match(/^\/api\/sessions\/(.+)$/);
+      if (req.method === 'GET' && sessionMatch) {
+        const session = store.getSession(sessionMatch[1]);
+        if (!session) {
+          json(res, 404, { error: 'Session not found' });
+          return;
+        }
+        json(res, 200, session);
+        return;
+      }
+
+      // POST /api/feedback
+      if (req.method === 'POST' && pathname === '/api/feedback') {
+        const body = await parseBody(req);
+        const parsed = CreateFeedbackSchema.safeParse(body);
+        if (!parsed.success) {
+          json(res, 400, {
+            error: 'Validation failed',
+            details: parsed.error.issues,
+          });
+          return;
+        }
+        const feedback = store.createFeedback(parsed.data);
+        json(res, 201, feedback);
+        return;
+      }
+
+      // 404 fallback
+      json(res, 404, { error: 'Not found' });
+    } catch (err) {
+      console.error('[HTTP] Error:', err);
+      json(res, 500, { error: 'Internal server error' });
+    }
+  });
+
+  return {
+    start: () =>
+      new Promise<void>((resolve) => {
+        server.listen(port, '127.0.0.1', () => {
+          console.error(`[HTTP] Server listening on http://127.0.0.1:${port}`);
+          resolve();
+        });
+      }),
+    close: () =>
+      new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      }),
+  };
+}
+
+// --- Helpers ---
+
+function json(res: ServerResponse, status: number, data: unknown) {
+  res.writeHead(status, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(data));
+}
+
+async function parseBody(req: IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+
+    req.on('data', (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > MAX_BODY_SIZE) {
+        reject(new Error('Request body too large'));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString()));
+      } catch {
+        reject(new Error('Invalid JSON'));
+      }
+    });
+
+    req.on('error', reject);
+  });
+}
+</file>
+
+<file path="src/server/mcp-server.ts">
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import type { Store } from '../store/store.js';
+import { registerListSessions } from '../tools/list-sessions.js';
+import { registerGetPendingFeedback } from '../tools/get-pending-feedback.js';
+import { registerAcknowledgeFeedback } from '../tools/acknowledge-feedback.js';
+import { registerResolveFeedback } from '../tools/resolve-feedback.js';
+import { registerDismissFeedback } from '../tools/dismiss-feedback.js';
+
+/**
+ * Create an MCP server instance with all tools registered.
+ */
+export function createMcpServer(store: Store): McpServer {
+  const server = new McpServer({
+    name: 'pro-ui-feedbacks-mcp',
+    version: '0.1.0',
+  });
+
+  registerListSessions(server, store);
+  registerGetPendingFeedback(server, store);
+  registerAcknowledgeFeedback(server, store);
+  registerResolveFeedback(server, store);
+  registerDismissFeedback(server, store);
+
+  return server;
+}
+
+/**
+ * Connect MCP server to stdio transport.
+ * stdout is reserved for JSON-RPC — all logs go to stderr.
+ */
+export async function startMcpServer(server: McpServer): Promise<void> {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error('[MCP] Server connected via stdio');
+}
+</file>
+
+<file path="src/store/memory-store.ts">
+import { randomUUID } from 'node:crypto';
+import type { Store } from './store.js';
+import type {
+  Feedback,
+  Session,
+  SessionWithFeedbacks,
+  CreateFeedbackInput,
+} from '../types/index.js';
+
+/**
+ * In-memory store implementation.
+ * Data is lost on process restart — acceptable for MVP.
+ */
+export class MemoryStore implements Store {
+  private sessions = new Map<string, Session>();
+  private feedbacks = new Map<string, Feedback>();
+
+  listSessions(): Session[] {
+    return Array.from(this.sessions.values());
+  }
+
+  getSession(sessionId: string): SessionWithFeedbacks | null {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+
+    const feedbacks = Array.from(this.feedbacks.values()).filter(
+      (f) => f.sessionId === sessionId
+    );
+    return { ...session, feedbacks };
+  }
+
+  createFeedback(input: CreateFeedbackInput): Feedback {
+    // Auto-create or reuse session based on pageUrl
+    const sessionId = input.sessionId ?? this.findOrCreateSession(input.pageUrl);
+
+    const feedback: Feedback = {
+      id: randomUUID(),
+      sessionId,
+      comment: input.comment,
+      element: input.element,
+      elementPath: input.elementPath,
+      screenshotUrl: input.screenshotUrl,
+      pageUrl: input.pageUrl,
+      intent: input.intent ?? 'fix',
+      severity: input.severity ?? 'suggestion',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+
+    this.feedbacks.set(feedback.id, feedback);
+    return feedback;
+  }
+
+  getPendingFeedback(sessionId?: string): Feedback[] {
+    const all = Array.from(this.feedbacks.values());
+    return all.filter((f) => {
+      const isPending = f.status === 'pending' || f.status === 'acknowledged';
+      if (sessionId) return isPending && f.sessionId === sessionId;
+      return isPending;
+    });
+  }
+
+  acknowledgeFeedback(feedbackId: string): Feedback | null {
+    const feedback = this.feedbacks.get(feedbackId);
+    if (!feedback || feedback.status !== 'pending') return null;
+
+    feedback.status = 'acknowledged';
+    return { ...feedback };
+  }
+
+  resolveFeedback(feedbackId: string, resolution: string): Feedback | null {
+    const feedback = this.feedbacks.get(feedbackId);
+    if (!feedback) return null;
+    if (feedback.status === 'resolved' || feedback.status === 'dismissed') return null;
+
+    feedback.status = 'resolved';
+    feedback.resolution = resolution;
+    feedback.resolvedAt = new Date().toISOString();
+    return { ...feedback };
+  }
+
+  dismissFeedback(feedbackId: string, reason: string): Feedback | null {
+    const feedback = this.feedbacks.get(feedbackId);
+    if (!feedback) return null;
+    if (feedback.status === 'resolved' || feedback.status === 'dismissed') return null;
+
+    feedback.status = 'dismissed';
+    feedback.resolution = reason;
+    feedback.resolvedAt = new Date().toISOString();
+    return { ...feedback };
+  }
+
+  /**
+   * Find existing session by pageUrl or create a new one.
+   */
+  private findOrCreateSession(pageUrl: string): string {
+    for (const session of this.sessions.values()) {
+      if (session.pageUrl === pageUrl) return session.id;
+    }
+
+    const session: Session = {
+      id: randomUUID(),
+      pageUrl,
+      title: new URL(pageUrl).pathname || pageUrl,
+      createdAt: new Date().toISOString(),
+    };
+    this.sessions.set(session.id, session);
+    return session.id;
+  }
+}
+</file>
+
+<file path="src/store/store.ts">
+import type {
+  Feedback,
+  Session,
+  SessionWithFeedbacks,
+  CreateFeedbackInput,
+} from '../types/index.js';
+
+/**
+ * Abstract store interface for feedback data.
+ * Implementations: MemoryStore (MVP), future SQLite store.
+ */
+export interface Store {
+  // Sessions
+  listSessions(): Session[];
+  getSession(sessionId: string): SessionWithFeedbacks | null;
+
+  // Feedback CRUD
+  createFeedback(input: CreateFeedbackInput): Feedback;
+  getPendingFeedback(sessionId?: string): Feedback[];
+  acknowledgeFeedback(feedbackId: string): Feedback | null;
+  resolveFeedback(feedbackId: string, resolution: string): Feedback | null;
+  dismissFeedback(feedbackId: string, reason: string): Feedback | null;
+}
+</file>
+
+<file path="src/tools/acknowledge-feedback.ts">
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Store } from '../store/store.js';
+
+export function registerAcknowledgeFeedback(server: McpServer, store: Store): void {
+  server.registerTool(
+    'acknowledge_feedback',
+    {
+      description: 'Mark a feedback item as seen/acknowledged by the agent.',
+      inputSchema: {
+        feedbackId: z.string().describe('ID of feedback to acknowledge'),
+      },
+    },
+    async ({ feedbackId }) => {
+      const result = store.acknowledgeFeedback(feedbackId);
+      if (!result) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Feedback not found or not in pending state: ${feedbackId}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+}
+</file>
+
+<file path="src/tools/dismiss-feedback.ts">
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Store } from '../store/store.js';
+
+export function registerDismissFeedback(server: McpServer, store: Store): void {
+  server.registerTool(
+    'dismiss_feedback',
+    {
+      description: 'Dismiss/reject feedback with a reason.',
+      inputSchema: {
+        feedbackId: z.string().describe('ID of feedback to dismiss'),
+        reason: z.string().describe('Reason for dismissing the feedback'),
+      },
+    },
+    async ({ feedbackId, reason }) => {
+      const result = store.dismissFeedback(feedbackId, reason);
+      if (!result) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Feedback not found or already resolved/dismissed: ${feedbackId}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+}
+</file>
+
+<file path="src/tools/get-pending-feedback.ts">
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Store } from '../store/store.js';
+
+export function registerGetPendingFeedback(server: McpServer, store: Store): void {
+  server.registerTool(
+    'get_pending_feedback',
+    {
+      description:
+        'Get all unresolved feedback. Optionally filter by session ID.',
+      inputSchema: {
+        sessionId: z
+          .string()
+          .optional()
+          .describe('Filter by session ID. Omit for all pending feedback.'),
+      },
+    },
+    async ({ sessionId }) => {
+      const feedbacks = store.getPendingFeedback(sessionId);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(feedbacks, null, 2),
+          },
+        ],
+      };
+    }
+  );
+}
+</file>
+
+<file path="src/tools/list-sessions.ts">
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Store } from '../store/store.js';
+
+export function registerListSessions(server: McpServer, store: Store): void {
+  server.registerTool(
+    'list_sessions',
+    {
+      description:
+        'List all active UI feedback sessions. Each session represents a page with annotations.',
+      inputSchema: {},
+    },
+    async () => {
+      const sessions = store.listSessions();
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(sessions, null, 2),
+          },
+        ],
+      };
+    }
+  );
+}
+</file>
+
+<file path="src/tools/resolve-feedback.ts">
+import { z } from 'zod';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { Store } from '../store/store.js';
+
+export function registerResolveFeedback(server: McpServer, store: Store): void {
+  server.registerTool(
+    'resolve_feedback',
+    {
+      description:
+        'Mark feedback as resolved with a summary of what was done to address it.',
+      inputSchema: {
+        feedbackId: z.string().describe('ID of feedback to resolve'),
+        resolution: z
+          .string()
+          .describe('Summary of what was done to address the feedback'),
+      },
+    },
+    async ({ feedbackId, resolution }) => {
+      const result = store.resolveFeedback(feedbackId, resolution);
+      if (!result) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Feedback not found or already resolved/dismissed: ${feedbackId}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    }
+  );
+}
+</file>
+
+<file path="src/types/index.ts">
+import { z } from 'zod';
+
+// --- Enums ---
+
+export const FeedbackIntent = z.enum(['fix', 'change', 'question', 'approve']);
+export type FeedbackIntent = z.infer<typeof FeedbackIntent>;
+
+export const FeedbackSeverity = z.enum(['blocking', 'important', 'suggestion']);
+export type FeedbackSeverity = z.infer<typeof FeedbackSeverity>;
+
+export const FeedbackStatus = z.enum(['pending', 'acknowledged', 'resolved', 'dismissed']);
+export type FeedbackStatus = z.infer<typeof FeedbackStatus>;
+
+// --- Feedback ---
+
+export const FeedbackSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  comment: z.string(),
+  element: z.string().optional(),
+  elementPath: z.string().optional(),
+  screenshotUrl: z.string().url().optional(),
+  pageUrl: z.string().url(),
+  intent: FeedbackIntent,
+  severity: FeedbackSeverity,
+  status: FeedbackStatus,
+  createdAt: z.string().datetime(),
+  resolvedAt: z.string().datetime().optional(),
+  resolution: z.string().optional(),
+});
+export type Feedback = z.infer<typeof FeedbackSchema>;
+
+// Input schema for creating feedback via HTTP API
+export const CreateFeedbackSchema = z.object({
+  comment: z.string().min(1),
+  pageUrl: z.string().url(),
+  element: z.string().optional(),
+  elementPath: z.string().optional(),
+  screenshotUrl: z.string().url().optional(),
+  intent: FeedbackIntent.default('fix'),
+  severity: FeedbackSeverity.default('suggestion'),
+  sessionId: z.string().optional(),
+});
+export type CreateFeedbackInput = z.infer<typeof CreateFeedbackSchema>;
+
+// --- Session ---
+
+export const SessionSchema = z.object({
+  id: z.string(),
+  pageUrl: z.string().url(),
+  title: z.string(),
+  createdAt: z.string().datetime(),
+});
+export type Session = z.infer<typeof SessionSchema>;
+
+export interface SessionWithFeedbacks extends Session {
+  feedbacks: Feedback[];
+}
+</file>
+
+<file path="src/cli.ts">
+#!/usr/bin/env node
+import { startServer } from './index.js';
+import { runInit } from './commands/init.js';
+import { runDoctor } from './commands/doctor.js';
+
+const args = process.argv.slice(2);
+const command = args[0];
+
+function getPort(): number {
+  const portIdx = args.indexOf('--port');
+  if (portIdx !== -1 && args[portIdx + 1]) {
+    const port = parseInt(args[portIdx + 1], 10);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      console.error(`Invalid port: ${args[portIdx + 1]}. Must be 1-65535.`);
+      process.exit(1);
+    }
+    return port;
+  }
+  return 4747;
+}
+
+async function main() {
+  switch (command) {
+    case 'init':
+      await runInit();
+      break;
+    case 'doctor':
+      await runDoctor();
+      break;
+    case 'server':
+    default:
+      // Default: start MCP + HTTP servers
+      await startServer({
+        port: getPort(),
+        mcpOnly: args.includes('--mcp-only'),
+      });
+      break;
+  }
+}
+
+main().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});
+</file>
+
+<file path="src/index.ts">
+import { createMcpServer, startMcpServer } from './server/mcp-server.js';
+import { createHttpServer } from './server/http-server.js';
+import { MemoryStore } from './store/memory-store.js';
+
+export interface ServerOptions {
+  port?: number;
+  mcpOnly?: boolean;
+}
+
+/**
+ * Start MCP server and optionally HTTP API server.
+ * Both share the same in-memory store.
+ */
+export async function startServer(options: ServerOptions = {}): Promise<void> {
+  const { port = 4747, mcpOnly = false } = options;
+  const store = new MemoryStore();
+
+  // MCP server always starts (stdio transport)
+  const mcpServer = createMcpServer(store);
+  await startMcpServer(mcpServer);
+
+  // HTTP server for receiving feedback (unless --mcp-only)
+  if (!mcpOnly) {
+    const httpServer = createHttpServer({ port, store });
+    await httpServer.start();
+  }
+}
+
+// Re-export types for package consumers
+export type {
+  Feedback,
+  FeedbackIntent,
+  FeedbackSeverity,
+  FeedbackStatus,
+  CreateFeedbackInput,
+  Session,
+  SessionWithFeedbacks,
+} from './types/index.js';
+</file>
+
+<file path="tests/http-server.test.ts">
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createHttpServer } from '../src/server/http-server.js';
+import { MemoryStore } from '../src/store/memory-store.js';
+
+describe('HTTP Server', () => {
+  const store = new MemoryStore();
+  const port = 14747; // Use non-standard port for tests
+  const httpServer = createHttpServer({ port, store });
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  beforeAll(async () => {
+    await httpServer.start();
+  });
+
+  afterAll(async () => {
+    await httpServer.close();
+  });
+
+  describe('GET /api/health', () => {
+    it('should return 200 with ok status', async () => {
+      const res = await fetch(`${baseUrl}/api/health`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body).toEqual({ status: 'ok' });
+    });
+  });
+
+  describe('POST /api/feedback', () => {
+    it('should create feedback with valid body', async () => {
+      const res = await fetch(`${baseUrl}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          comment: 'Fix the button',
+          pageUrl: 'https://example.com/page',
+          intent: 'fix',
+          severity: 'important',
+        }),
+      });
+
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.id).toBeDefined();
+      expect(body.comment).toBe('Fix the button');
+      expect(body.status).toBe('pending');
+    });
+
+    it('should return 400 for invalid body', async () => {
+      const res = await fetch(`${baseUrl}/api/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: '' }), // missing pageUrl, empty comment
+      });
+
+      expect(res.status).toBe(400);
+      const body = await res.json();
+      expect(body.error).toBe('Validation failed');
+    });
+  });
+
+  describe('GET /api/sessions', () => {
+    it('should return sessions array', async () => {
+      const res = await fetch(`${baseUrl}/api/sessions`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(Array.isArray(body)).toBe(true);
+      // Should have at least 1 session from feedback creation above
+      expect(body.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('GET /api/sessions/:id', () => {
+    it('should return 404 for unknown session', async () => {
+      const res = await fetch(`${baseUrl}/api/sessions/nonexistent`);
+      expect(res.status).toBe(404);
+    });
+
+    it('should return session with feedbacks', async () => {
+      const sessions = await (
+        await fetch(`${baseUrl}/api/sessions`)
+      ).json();
+      const sessionId = sessions[0].id;
+
+      const res = await fetch(`${baseUrl}/api/sessions/${sessionId}`);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.id).toBe(sessionId);
+      expect(Array.isArray(body.feedbacks)).toBe(true);
+    });
+  });
+
+  describe('Unknown routes', () => {
+    it('should return 404', async () => {
+      const res = await fetch(`${baseUrl}/api/unknown`);
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe('CORS', () => {
+    it('should include CORS headers', async () => {
+      const res = await fetch(`${baseUrl}/api/health`);
+      const origin = res.headers.get('access-control-allow-origin');
+      expect(origin).toBeDefined();
+      // Default allows localhost origins
+      expect(origin).toContain('localhost');
+    });
+
+    it('should handle OPTIONS preflight', async () => {
+      const res = await fetch(`${baseUrl}/api/health`, { method: 'OPTIONS' });
+      expect(res.status).toBe(204);
+    });
+  });
+});
+</file>
+
+<file path="tests/memory-store.test.ts">
+import { describe, it, expect, beforeEach } from 'vitest';
+import { MemoryStore } from '../src/store/memory-store.js';
+
+describe('MemoryStore', () => {
+  let store: MemoryStore;
+
+  beforeEach(() => {
+    store = new MemoryStore();
+  });
+
+  describe('createFeedback', () => {
+    it('should create feedback and auto-create session', () => {
+      const feedback = store.createFeedback({
+        comment: 'Fix the button color',
+        pageUrl: 'https://example.com/page',
+        intent: 'fix',
+        severity: 'suggestion',
+      });
+
+      expect(feedback.id).toBeDefined();
+      expect(feedback.sessionId).toBeDefined();
+      expect(feedback.comment).toBe('Fix the button color');
+      expect(feedback.status).toBe('pending');
+      expect(feedback.pageUrl).toBe('https://example.com/page');
+    });
+
+    it('should reuse session for same pageUrl', () => {
+      const f1 = store.createFeedback({
+        comment: 'First',
+        pageUrl: 'https://example.com/page',
+      });
+      const f2 = store.createFeedback({
+        comment: 'Second',
+        pageUrl: 'https://example.com/page',
+      });
+
+      expect(f1.sessionId).toBe(f2.sessionId);
+    });
+
+    it('should create separate sessions for different pageUrls', () => {
+      const f1 = store.createFeedback({
+        comment: 'First',
+        pageUrl: 'https://example.com/page1',
+      });
+      const f2 = store.createFeedback({
+        comment: 'Second',
+        pageUrl: 'https://example.com/page2',
+      });
+
+      expect(f1.sessionId).not.toBe(f2.sessionId);
+    });
+
+    it('should use provided sessionId', () => {
+      // Create first feedback to auto-create session
+      const f1 = store.createFeedback({
+        comment: 'First',
+        pageUrl: 'https://example.com/page',
+      });
+
+      const f2 = store.createFeedback({
+        comment: 'Second',
+        pageUrl: 'https://example.com/other',
+        sessionId: f1.sessionId,
+      });
+
+      expect(f2.sessionId).toBe(f1.sessionId);
+    });
+  });
+
+  describe('listSessions', () => {
+    it('should return empty array initially', () => {
+      expect(store.listSessions()).toEqual([]);
+    });
+
+    it('should return all sessions', () => {
+      store.createFeedback({
+        comment: 'a',
+        pageUrl: 'https://example.com/p1',
+      });
+      store.createFeedback({
+        comment: 'b',
+        pageUrl: 'https://example.com/p2',
+      });
+
+      const sessions = store.listSessions();
+      expect(sessions).toHaveLength(2);
+    });
+  });
+
+  describe('getSession', () => {
+    it('should return null for unknown sessionId', () => {
+      expect(store.getSession('nonexistent')).toBeNull();
+    });
+
+    it('should return session with its feedbacks', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+
+      const session = store.getSession(feedback.sessionId);
+      expect(session).not.toBeNull();
+      expect(session!.feedbacks).toHaveLength(1);
+      expect(session!.feedbacks[0].comment).toBe('Test');
+    });
+  });
+
+  describe('getPendingFeedback', () => {
+    it('should return only pending/acknowledged feedbacks', () => {
+      const f1 = store.createFeedback({
+        comment: 'pending one',
+        pageUrl: 'https://example.com/page',
+      });
+      store.createFeedback({
+        comment: 'pending two',
+        pageUrl: 'https://example.com/page',
+      });
+
+      // Resolve one
+      store.resolveFeedback(f1.id, 'Fixed it');
+
+      const pending = store.getPendingFeedback();
+      expect(pending).toHaveLength(1);
+      expect(pending[0].comment).toBe('pending two');
+    });
+
+    it('should filter by sessionId', () => {
+      store.createFeedback({
+        comment: 'a',
+        pageUrl: 'https://example.com/p1',
+      });
+      const f2 = store.createFeedback({
+        comment: 'b',
+        pageUrl: 'https://example.com/p2',
+      });
+
+      const pending = store.getPendingFeedback(f2.sessionId);
+      expect(pending).toHaveLength(1);
+      expect(pending[0].comment).toBe('b');
+    });
+  });
+
+  describe('acknowledgeFeedback', () => {
+    it('should transition pending → acknowledged', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+
+      const result = store.acknowledgeFeedback(feedback.id);
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe('acknowledged');
+    });
+
+    it('should return null for non-pending feedback', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      store.acknowledgeFeedback(feedback.id); // pending → acknowledged
+
+      // Try again — should fail (not pending)
+      const result = store.acknowledgeFeedback(feedback.id);
+      expect(result).toBeNull();
+    });
+
+    it('should return null for unknown id', () => {
+      expect(store.acknowledgeFeedback('nonexistent')).toBeNull();
+    });
+  });
+
+  describe('resolveFeedback', () => {
+    it('should resolve pending feedback', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+
+      const result = store.resolveFeedback(feedback.id, 'Fixed the issue');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe('resolved');
+      expect(result!.resolution).toBe('Fixed the issue');
+      expect(result!.resolvedAt).toBeDefined();
+    });
+
+    it('should resolve acknowledged feedback', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      store.acknowledgeFeedback(feedback.id);
+
+      const result = store.resolveFeedback(feedback.id, 'Done');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe('resolved');
+    });
+
+    it('should return null for already resolved feedback', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      store.resolveFeedback(feedback.id, 'Fixed');
+
+      const result = store.resolveFeedback(feedback.id, 'Again');
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('dismissFeedback', () => {
+    it('should dismiss pending feedback with reason', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+
+      const result = store.dismissFeedback(feedback.id, 'Not applicable');
+      expect(result).not.toBeNull();
+      expect(result!.status).toBe('dismissed');
+      expect(result!.resolution).toBe('Not applicable');
+    });
+
+    it('should return null for already dismissed feedback', () => {
+      const feedback = store.createFeedback({
+        comment: 'Test',
+        pageUrl: 'https://example.com/page',
+      });
+      store.dismissFeedback(feedback.id, 'No');
+
+      const result = store.dismissFeedback(feedback.id, 'Again');
+      expect(result).toBeNull();
+    });
+  });
+});
+</file>
+
+<file path=".gitignore">
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="package.json">
+{
+  "name": "pro-ui-feedbacks-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for UI feedback processing by AI agents",
+  "type": "module",
+  "bin": {
+    "pro-ui-feedbacks-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "ui-feedback",
+    "annotations"
+  ],
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "",
+  "bugs": {
+    "url": ""
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}
+</file>
+
+<file path="README.md">
+# pro-ui-feedbacks-mcp
+
+MCP (Model Context Protocol) server for UI feedback processing by AI agents.
+
+Receives UI annotations/feedback via HTTP API and exposes them to AI agents (Claude Code, Cursor, Copilot, Windsurf, Codex, etc.) through MCP tools.
+
+## Quick Start
+
+```bash
+npx pro-ui-feedbacks-mcp
+```
+
+This starts both:
+- **MCP server** on stdio (for AI agent communication)
+- **HTTP API** on `http://127.0.0.1:4747` (for receiving feedback)
+
+## Installation
+
+```bash
+npm install -g pro-ui-feedbacks-mcp
+```
+
+## Agent Configuration
+
+All MCP-compatible agents use a similar JSON config:
+
+```json
+{
+  "mcpServers": {
+    "pro-ui-feedbacks": {
+      "command": "npx",
+      "args": ["pro-ui-feedbacks-mcp"]
+    }
+  }
+}
+```
+
+### Auto-setup
+
+```bash
+npx pro-ui-feedbacks-mcp init
+```
+
+Detects installed agents and writes config automatically.
+
+### Config locations
+
+| Agent | Config File |
+|-------|------------|
+| Claude Code | `~/.claude/mcp.json` |
+| Cursor | `.cursor/mcp.json` |
+| VS Code / Copilot | `.vscode/mcp.json` |
+| Windsurf | `.codeium/windsurf/mcp_config.json` |
+
+## MCP Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_sessions` | List all active feedback sessions |
+| `get_pending_feedback` | Get unresolved feedback (optionally by session) |
+| `acknowledge_feedback` | Mark feedback as seen |
+| `resolve_feedback` | Mark as resolved with summary |
+| `dismiss_feedback` | Reject with reasoning |
+
+## HTTP API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/feedback` | Submit new feedback |
+| `GET` | `/api/sessions` | List all sessions |
+| `GET` | `/api/sessions/:id` | Get session with feedbacks |
+| `GET` | `/api/health` | Health check |
+
+### Submit feedback
+
+```bash
+curl -X POST http://127.0.0.1:4747/api/feedback \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "comment": "Fix the button color",
+    "pageUrl": "https://example.com/page",
+    "intent": "fix",
+    "severity": "important"
+  }'
+```
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `npx pro-ui-feedbacks-mcp` | Start servers (default) |
+| `npx pro-ui-feedbacks-mcp server` | Start servers |
+| `npx pro-ui-feedbacks-mcp server --port 8080` | Custom HTTP port |
+| `npx pro-ui-feedbacks-mcp server --mcp-only` | MCP only, no HTTP |
+| `npx pro-ui-feedbacks-mcp init` | Auto-configure agents |
+| `npx pro-ui-feedbacks-mcp doctor` | Verify setup |
+
+## Programmatic Usage
+
+```typescript
+import { startServer } from 'pro-ui-feedbacks-mcp';
+
+await startServer({ port: 4747, mcpOnly: false });
+```
+
+## License
+
+MIT
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "tests"]
+}
+</file>
+
+<file path="tsup.config.ts">
+import { defineConfig } from 'tsup';
+
+export default defineConfig({
+  entry: ['src/cli.ts', 'src/index.ts'],
+  format: ['esm'],
+  dts: true,
+  clean: true,
+  sourcemap: true,
+  target: 'node18',
+});
+</file>
+
+</files>

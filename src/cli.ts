@@ -2,6 +2,7 @@
 import { startServer } from './index.js';
 import { runInit } from './commands/init.js';
 import { runDoctor } from './commands/doctor.js';
+import { DEFAULT_HTTP_PORT } from './constants.js';
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -16,7 +17,7 @@ function getPort(): number {
     }
     return port;
   }
-  return 4747;
+  return DEFAULT_HTTP_PORT;
 }
 
 async function main() {

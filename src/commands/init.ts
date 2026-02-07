@@ -1,33 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { homedir } from 'node:os';
-
-interface AgentConfig {
-  name: string;
-  configPath: string;
-}
-
-const MCP_ENTRY = {
-  'pro-ui-feedbacks': {
-    command: 'npx',
-    args: ['pro-ui-feedbacks-mcp'],
-  },
-};
-
-function getAgentConfigs(): AgentConfig[] {
-  const home = homedir();
-  const cwd = process.cwd();
-
-  return [
-    { name: 'Claude Code', configPath: join(home, '.claude', 'mcp.json') },
-    { name: 'Cursor', configPath: join(cwd, '.cursor', 'mcp.json') },
-    { name: 'VS Code / Copilot', configPath: join(cwd, '.vscode', 'mcp.json') },
-    {
-      name: 'Windsurf',
-      configPath: join(cwd, '.codeium', 'windsurf', 'mcp_config.json'),
-    },
-  ];
-}
+import { dirname } from 'node:path';
+import { getAgentConfigs, MCP_SERVER_KEY, MCP_ENTRY } from './agent-configs.js';
 
 /**
  * Auto-detect AI agents and configure MCP server entry.
@@ -47,25 +20,21 @@ export async function runInit(): Promise<void> {
     }
 
     try {
-      // Read existing config or start fresh
       let config: Record<string, unknown> = {};
       if (existsSync(agent.configPath)) {
         config = JSON.parse(readFileSync(agent.configPath, 'utf-8'));
       }
 
-      // Merge MCP entry
-      const mcpServers =
-        (config.mcpServers as Record<string, unknown>) ?? {};
-      if (mcpServers['pro-ui-feedbacks']) {
+      const mcpServers = (config.mcpServers as Record<string, unknown>) ?? {};
+      if (mcpServers[MCP_SERVER_KEY]) {
         console.error(`  [✓] ${agent.name} — already configured`);
         configured++;
         continue;
       }
 
-      mcpServers['pro-ui-feedbacks'] = MCP_ENTRY['pro-ui-feedbacks'];
+      mcpServers[MCP_SERVER_KEY] = MCP_ENTRY;
       config.mcpServers = mcpServers;
 
-      // Ensure directory exists and write
       mkdirSync(dir, { recursive: true });
       writeFileSync(agent.configPath, JSON.stringify(config, null, 2) + '\n');
       console.error(`  [+] ${agent.name} — configured at ${agent.configPath}`);
@@ -79,7 +48,7 @@ export async function runInit(): Promise<void> {
   if (configured === 0) {
     console.error(
       'No agents detected. You can manually add to your agent config:\n' +
-        JSON.stringify({ mcpServers: MCP_ENTRY }, null, 2)
+        JSON.stringify({ mcpServers: { [MCP_SERVER_KEY]: MCP_ENTRY } }, null, 2)
     );
   }
 }

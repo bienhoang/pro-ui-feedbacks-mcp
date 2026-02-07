@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { getAgentConfigs, MCP_SERVER_KEY } from './agent-configs.js';
 
 /**
  * Verify MCP server setup and configuration.
@@ -19,25 +18,15 @@ export async function runDoctor(): Promise<void> {
   }
 
   // Check agent configs for MCP entry
-  const home = homedir();
-  const cwd = process.cwd();
-  const configPaths = [
-    { name: 'Claude Code', path: join(home, '.claude', 'mcp.json') },
-    { name: 'Cursor', path: join(cwd, '.cursor', 'mcp.json') },
-    { name: 'VS Code / Copilot', path: join(cwd, '.vscode', 'mcp.json') },
-    {
-      name: 'Windsurf',
-      path: join(cwd, '.codeium', 'windsurf', 'mcp_config.json'),
-    },
-  ];
-
+  const agents = getAgentConfigs();
   let hasConfig = false;
-  for (const { name, path } of configPaths) {
-    if (!existsSync(path)) continue;
+
+  for (const { name, configPath } of agents) {
+    if (!existsSync(configPath)) continue;
 
     try {
-      const config = JSON.parse(readFileSync(path, 'utf-8'));
-      if (config?.mcpServers?.['pro-ui-feedbacks']) {
+      const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+      if (config?.mcpServers?.[MCP_SERVER_KEY]) {
         console.error(`  [✓] ${name} — configured`);
         hasConfig = true;
       } else {
@@ -54,7 +43,6 @@ export async function runDoctor(): Promise<void> {
     issues++;
   }
 
-  // Summary
   console.error(
     issues === 0
       ? '\nAll checks passed.'

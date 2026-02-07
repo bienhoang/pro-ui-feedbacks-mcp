@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Store } from '../store/store.js';
+import { toolSuccess, toolError } from './tool-helpers.js';
 
 export function registerAcknowledgeFeedback(server: McpServer, store: Store): void {
   server.registerTool(
@@ -13,25 +14,8 @@ export function registerAcknowledgeFeedback(server: McpServer, store: Store): vo
     },
     async ({ feedbackId }) => {
       const result = store.acknowledgeFeedback(feedbackId);
-      if (!result) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Feedback not found or not in pending state: ${feedbackId}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      if (!result) return toolError(`Feedback not found or not in pending state: ${feedbackId}`);
+      return toolSuccess(result);
     }
   );
 }

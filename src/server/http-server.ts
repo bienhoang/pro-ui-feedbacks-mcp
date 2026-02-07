@@ -1,8 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { Store } from '../store/store.js';
 import { CreateFeedbackSchema } from '../types/index.js';
-
-const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+import { MAX_BODY_SIZE, HTTP_HOST } from '../constants.js';
 
 export interface HttpServerOptions {
   port: number;
@@ -95,8 +94,8 @@ export function createHttpServer({ port, store, allowedOrigins }: HttpServerOpti
   return {
     start: () =>
       new Promise<void>((resolve) => {
-        server.listen(port, '127.0.0.1', () => {
-          console.error(`[HTTP] Server listening on http://127.0.0.1:${port}`);
+        server.listen(port, HTTP_HOST, () => {
+          console.error(`[HTTP] Server listening on http://${HTTP_HOST}:${port}`);
           resolve();
         });
       }),

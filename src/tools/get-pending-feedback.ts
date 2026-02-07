@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Store } from '../store/store.js';
+import { toolSuccess } from './tool-helpers.js';
 
 export function registerGetPendingFeedback(server: McpServer, store: Store): void {
   server.registerTool(
@@ -15,16 +16,6 @@ export function registerGetPendingFeedback(server: McpServer, store: Store): voi
           .describe('Filter by session ID. Omit for all pending feedback.'),
       },
     },
-    async ({ sessionId }) => {
-      const feedbacks = store.getPendingFeedback(sessionId);
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(feedbacks, null, 2),
-          },
-        ],
-      };
-    }
+    async ({ sessionId }) => toolSuccess(store.getPendingFeedback(sessionId))
   );
 }

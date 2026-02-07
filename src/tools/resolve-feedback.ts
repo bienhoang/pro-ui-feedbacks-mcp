@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Store } from '../store/store.js';
+import { toolSuccess, toolError } from './tool-helpers.js';
 
 export function registerResolveFeedback(server: McpServer, store: Store): void {
   server.registerTool(
@@ -17,25 +18,8 @@ export function registerResolveFeedback(server: McpServer, store: Store): void {
     },
     async ({ feedbackId, resolution }) => {
       const result = store.resolveFeedback(feedbackId, resolution);
-      if (!result) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: `Feedback not found or already resolved/dismissed: ${feedbackId}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: JSON.stringify(result, null, 2),
-          },
-        ],
-      };
+      if (!result) return toolError(`Feedback not found or already resolved/dismissed: ${feedbackId}`);
+      return toolSuccess(result);
     }
   );
 }

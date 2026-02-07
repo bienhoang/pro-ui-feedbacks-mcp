@@ -1,6 +1,7 @@
 import { createMcpServer, startMcpServer } from './server/mcp-server.js';
 import { createHttpServer } from './server/http-server.js';
 import { MemoryStore } from './store/memory-store.js';
+import { DEFAULT_HTTP_PORT } from './constants.js';
 
 export interface ServerOptions {
   port?: number;
@@ -12,7 +13,7 @@ export interface ServerOptions {
  * Both share the same in-memory store.
  */
 export async function startServer(options: ServerOptions = {}): Promise<void> {
-  const { port = 4747, mcpOnly = false } = options;
+  const { port = DEFAULT_HTTP_PORT, mcpOnly = false } = options;
   const store = new MemoryStore();
 
   // MCP server always starts (stdio transport)

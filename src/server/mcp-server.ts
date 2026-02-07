@@ -1,6 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import type { Store } from '../store/store.js';
+import { SERVER_NAME, SERVER_VERSION } from '../constants.js';
 import { registerListSessions } from '../tools/list-sessions.js';
 import { registerGetPendingFeedback } from '../tools/get-pending-feedback.js';
 import { registerAcknowledgeFeedback } from '../tools/acknowledge-feedback.js';
@@ -12,8 +13,8 @@ import { registerDismissFeedback } from '../tools/dismiss-feedback.js';
  */
 export function createMcpServer(store: Store): McpServer {
   const server = new McpServer({
-    name: 'pro-ui-feedbacks-mcp',
-    version: '0.1.0',
+    name: SERVER_NAME,
+    version: SERVER_VERSION,
   });
 
   registerListSessions(server, store);
