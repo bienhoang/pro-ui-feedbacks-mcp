@@ -1,6 +1,6 @@
 # Code Standards & Structure Guide
 
-**pro-ui-feedbacks-mcp**
+**gosnap-mcp**
 
 ---
 
@@ -20,7 +20,7 @@
 ## Project Structure
 
 ```
-pro-ui-feedbacks-mcp/
+gosnap-mcp/
 ├── src/
 │   ├── types/              # Zod schemas & type definitions
 │   │   ├── index.ts        # Domain schemas (Feedback, Session, etc.)

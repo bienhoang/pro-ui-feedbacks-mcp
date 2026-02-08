@@ -5,7 +5,7 @@ import { getAgentConfigs, MCP_SERVER_KEY } from './agent-configs.js';
  * Verify MCP server setup and configuration.
  */
 export async function runDoctor(): Promise<void> {
-  console.error('pro-ui-feedbacks-mcp doctor\n');
+  console.error('gosnap-mcp doctor\n');
   let issues = 0;
 
   // Check Node.js version
@@ -39,7 +39,7 @@ export async function runDoctor(): Promise<void> {
   }
 
   if (!hasConfig) {
-    console.error("  [✗] No agent configured. Run 'npx pro-ui-feedbacks-mcp init'.");
+    console.error("  [✗] No agent configured. Run 'npx gosnap-mcp init'.");
     issues++;
   }
 

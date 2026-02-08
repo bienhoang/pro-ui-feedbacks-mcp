@@ -1,12 +1,12 @@
-# Contributing to pro-ui-feedbacks-mcp
+# Contributing to gosnap-mcp
 
 Thanks for your interest in contributing! This guide will help you get started.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp.git
-cd pro-ui-feedbacks-mcp
+git clone https://github.com/bienhoang/gosnap-mcp.git
+cd gosnap-mcp
 npm install
 ```
 

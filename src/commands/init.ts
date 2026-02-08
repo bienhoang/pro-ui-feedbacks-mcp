@@ -6,7 +6,7 @@ import { getAgentConfigs, MCP_SERVER_KEY, MCP_ENTRY } from './agent-configs.js';
  * Auto-detect AI agents and configure MCP server entry.
  */
 export async function runInit(): Promise<void> {
-  console.error('pro-ui-feedbacks-mcp init\n');
+  console.error('gosnap-mcp init\n');
   const agents = getAgentConfigs();
   let configured = 0;
 

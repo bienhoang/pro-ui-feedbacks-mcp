@@ -1,10 +1,10 @@
 {
-  "name": "pro-ui-feedbacks-mcp",
+  "name": "@bienhoang/gosnap-mcp",
   "version": "0.1.0",
   "description": "MCP server for UI feedback processing by AI agents",
   "type": "module",
   "bin": {
-    "pro-ui-feedbacks-mcp": "./dist/cli.js"
+    "gosnap-mcp": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -35,14 +35,14 @@
     "ui-feedback",
     "annotations"
   ],
-  "author": "AiCodingBattle",
+  "author": "bienhoang",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp.git"
+    "url": "git+https://github.com/bienhoang/gosnap-mcp.git"
   },
-  "homepage": "https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp#readme",
+  "homepage": "https://github.com/bienhoang/gosnap-mcp#readme",
   "bugs": {
-    "url": "https://github.com/AiCodingBattle/pro-ui-feedbacks-mcp/issues"
+    "url": "https://github.com/bienhoang/gosnap-mcp/issues"
   },
   "license": "MIT",
   "dependencies": {

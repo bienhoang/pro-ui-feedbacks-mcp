@@ -1,10 +1,10 @@
-# Codebase Summary: pro-ui-feedbacks-mcp
+# Codebase Summary: gosnap-mcp
 
 **MCP server package for UI feedback collection & AI agent integration.**
 
 ## Project Overview
 
-**pro-ui-feedbacks-mcp** enables UI designers, QA teams, and product managers to submit feedback annotations via HTTP API. AI agents (Claude Code, Cursor, Copilot, Windsurf) consume feedback through MCP tools, allowing them to understand UI issues and make informed code changes.
+**gosnap-mcp** enables UI designers, QA teams, and product managers to submit feedback annotations via HTTP API. AI agents (Claude Code, Cursor, Copilot, Windsurf) consume feedback through MCP tools, allowing them to understand UI issues and make informed code changes.
 
 **Key Flow:** UI Feedback → HTTP API → Shared Store → MCP Tools → AI Agent
 
@@ -415,12 +415,12 @@ export function register{ToolName}(server: McpServer, store: Store): void
 Router for commands:
 
 ```bash
-npx pro-ui-feedbacks-mcp                    # Start servers (default)
-npx pro-ui-feedbacks-mcp server             # Explicit server start
-npx pro-ui-feedbacks-mcp server --port 8080 # Custom HTTP port
-npx pro-ui-feedbacks-mcp server --mcp-only  # MCP only, no HTTP
-npx pro-ui-feedbacks-mcp init               # Auto-configure agents
-npx pro-ui-feedbacks-mcp doctor             # Health check
+npx gosnap-mcp                    # Start servers (default)
+npx gosnap-mcp server             # Explicit server start
+npx gosnap-mcp server --port 8080 # Custom HTTP port
+npx gosnap-mcp server --mcp-only  # MCP only, no HTTP
+npx gosnap-mcp init               # Auto-configure agents
+npx gosnap-mcp doctor             # Health check
 ```
 
 **Port parsing:** Validates 1–65535 range. Default: 4747.
@@ -439,7 +439,7 @@ Auto-detects AI agents and writes MCP config:
 **Flow:**
 1. Check if agent config directory exists
 2. Read existing config or start fresh
-3. Merge `pro-ui-feedbacks` entry into `mcpServers` object
+3. Merge `gosnap` entry into `mcpServers` object
 4. Write updated config with proper JSON formatting
 
 #### `src/commands/doctor.ts`
@@ -471,7 +471,7 @@ export async function startServer(options: ServerOptions = {}): Promise<void>
 **Library usage:**
 
 ```typescript
-import { startServer } from 'pro-ui-feedbacks-mcp';
+import { startServer } from '@bienhoang/gosnap-mcp';
 
 await startServer({ port: 8080, mcpOnly: false });
 ```
@@ -484,11 +484,11 @@ await startServer({ port: 8080, mcpOnly: false });
 
 ```json
 {
-  "name": "pro-ui-feedbacks-mcp",
+  "name": "@bienhoang/gosnap-mcp",
   "version": "0.1.0",
   "type": "module",                    // ESM only
   "bin": {
-    "pro-ui-feedbacks-mcp": "./dist/cli.js"  // CLI entry
+    "gosnap-mcp": "./dist/cli.js"  // CLI entry
   },
   "main": "./dist/index.js",           // Library entry
   "types": "./dist/index.d.ts",        // TypeScript types
@@ -649,7 +649,7 @@ curl -X POST http://127.0.0.1:4747/api/feedback \
 ### Using as library
 
 ```typescript
-import { startServer } from 'pro-ui-feedbacks-mcp';
+import { startServer } from '@bienhoang/gosnap-mcp';
 
 await startServer({ port: 4747, mcpOnly: false });
 ```

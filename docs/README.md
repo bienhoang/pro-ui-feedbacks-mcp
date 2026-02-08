@@ -1,8 +1,8 @@
 # Documentation Index
 
-**pro-ui-feedbacks-mcp v0.1.0**
+**gosnap-mcp v0.1.0**
 
-Welcome to the pro-ui-feedbacks-mcp documentation. This directory contains comprehensive guides for developers, architects, and product stakeholders.
+Welcome to the gosnap-mcp documentation. This directory contains comprehensive guides for developers, architects, and product stakeholders.
 
 ---
 
@@ -278,7 +278,7 @@ Update documentation when:
 
 - **Date:** 2026-02-08
 - **Generator:** Claude Code (docs-manager subagent)
-- **Codebase:** pro-ui-feedbacks-mcp v0.1.0
+- **Codebase:** gosnap-mcp v0.1.0
 - **Status:** Production-ready
 
 ---

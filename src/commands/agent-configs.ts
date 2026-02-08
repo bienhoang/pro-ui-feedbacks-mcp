@@ -6,11 +6,11 @@ export interface AgentConfig {
   configPath: string;
 }
 
-export const MCP_SERVER_KEY = 'pro-ui-feedbacks';
+export const MCP_SERVER_KEY = 'gosnap';
 
 export const MCP_ENTRY = {
   command: 'npx',
-  args: ['pro-ui-feedbacks-mcp'],
+  args: ['gosnap-mcp'],
 };
 
 /**

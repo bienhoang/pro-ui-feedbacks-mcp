@@ -1,12 +1,12 @@
 # Project Overview & Product Development Requirements (PDR)
 
-**pro-ui-feedbacks-mcp v0.1.0**
+**gosnap-mcp v0.1.0**
 
 ---
 
 ## Executive Summary
 
-**pro-ui-feedbacks-mcp** is an npm package that bridges UI feedback collection with AI agent capabilities. It provides:
+**gosnap-mcp** is an npm package that bridges UI feedback collection with AI agent capabilities. It provides:
 
 1. **HTTP API server** for external apps to submit UI feedback annotations
 2. **MCP server** exposing feedback as tools accessible to Claude Code, Cursor, Copilot, Windsurf, and other MCP-compatible agents
@@ -178,7 +178,7 @@
 **Requirement:** Users must easily start MCP + HTTP servers.
 
 **Acceptance Criteria:**
-- `npx pro-ui-feedbacks-mcp` (or `server` explicit) starts both
+- `npx gosnap-mcp` (or `server` explicit) starts both
 - `--port PORT` overrides default 4747
 - `--mcp-only` starts MCP only, skips HTTP
 - Logs to stderr (stdout reserved for MCP JSON-RPC)
@@ -191,7 +191,7 @@
 **Requirement:** Setup must be easy for end users.
 
 **Acceptance Criteria:**
-- `npx pro-ui-feedbacks-mcp init` auto-detects agents and configures
+- `npx gosnap-mcp init` auto-detects agents and configures
 - Detects: Claude Code, Cursor, VS Code/Copilot, Windsurf
 - Writes/merges MCP entry into each agent's config file
 - Idempotent: running init twice doesn't duplicate entries
@@ -204,7 +204,7 @@
 **Requirement:** Users must verify setup.
 
 **Acceptance Criteria:**
-- `npx pro-ui-feedbacks-mcp doctor` checks configuration
+- `npx gosnap-mcp doctor` checks configuration
 - Verifies agents are configured (future: check connection)
 - Reports errors or success
 - Non-blocking; exit 0 on success
@@ -271,7 +271,7 @@
 ### NFR-6: Deployability
 
 - **Npm package:** Published to npm registry, installable globally or per-project
-- **Bin entry:** `npx pro-ui-feedbacks-mcp` without installation
+- **Bin entry:** `npx gosnap-mcp` without installation
 - **Size:** Minimal dependencies (SDK + zod only)
 - **Build:** Single `npm run build` command
 - **Prepublish:** Auto-build before publish
@@ -443,8 +443,8 @@
 
 ### Manual Testing
 
-- `npx pro-ui-feedbacks-mcp init` with real agents
-- `npx pro-ui-feedbacks-mcp doctor`
+- `npx gosnap-mcp init` with real agents
+- `npx gosnap-mcp doctor`
 - `curl` feedback submission
 - Agent integration with Claude Code
 
@@ -529,9 +529,9 @@
 ```json
 {
   "mcpServers": {
-    "pro-ui-feedbacks": {
+    "gosnap": {
       "command": "npx",
-      "args": ["pro-ui-feedbacks-mcp"]
+      "args": ["gosnap-mcp"]
     }
   }
 }

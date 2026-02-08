@@ -1,4 +1,4 @@
-# pro-ui-feedbacks-mcp
+# gosnap-mcp
 
 MCP (Model Context Protocol) server for UI feedback processing by AI agents.
 
@@ -7,7 +7,7 @@ Receives UI annotations/feedback via HTTP API and exposes them to AI agents (Cla
 ## Quick Start
 
 ```bash
-npx pro-ui-feedbacks-mcp
+npx gosnap-mcp
 ```
 
 This starts both:
@@ -17,7 +17,7 @@ This starts both:
 ## Installation
 
 ```bash
-npm install -g pro-ui-feedbacks-mcp
+npm install -g @bienhoang/gosnap-mcp
 ```
 
 ## Agent Configuration
@@ -27,9 +27,9 @@ All MCP-compatible agents use a similar JSON config:
 ```json
 {
   "mcpServers": {
-    "pro-ui-feedbacks": {
+    "gosnap": {
       "command": "npx",
-      "args": ["pro-ui-feedbacks-mcp"]
+      "args": ["gosnap-mcp"]
     }
   }
 }
@@ -38,7 +38,7 @@ All MCP-compatible agents use a similar JSON config:
 ### Auto-setup
 
 ```bash
-npx pro-ui-feedbacks-mcp init
+npx gosnap-mcp init
 ```
 
 Detects installed agents and writes config automatically.
@@ -89,17 +89,17 @@ curl -X POST http://127.0.0.1:4747/api/feedback \
 
 | Command | Description |
 |---------|-------------|
-| `npx pro-ui-feedbacks-mcp` | Start servers (default) |
-| `npx pro-ui-feedbacks-mcp server` | Start servers |
-| `npx pro-ui-feedbacks-mcp server --port 8080` | Custom HTTP port |
-| `npx pro-ui-feedbacks-mcp server --mcp-only` | MCP only, no HTTP |
-| `npx pro-ui-feedbacks-mcp init` | Auto-configure agents |
-| `npx pro-ui-feedbacks-mcp doctor` | Verify setup |
+| `npx gosnap-mcp` | Start servers (default) |
+| `npx gosnap-mcp server` | Start servers |
+| `npx gosnap-mcp server --port 8080` | Custom HTTP port |
+| `npx gosnap-mcp server --mcp-only` | MCP only, no HTTP |
+| `npx gosnap-mcp init` | Auto-configure agents |
+| `npx gosnap-mcp doctor` | Verify setup |
 
 ## Programmatic Usage
 
 ```typescript
-import { startServer } from 'pro-ui-feedbacks-mcp';
+import { startServer } from '@bienhoang/gosnap-mcp';
 
 await startServer({ port: 4747, mcpOnly: false });
 ```

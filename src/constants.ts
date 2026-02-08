@@ -4,5 +4,5 @@ export const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 export const MAX_BATCH_SIZE = 100;
 export const MAX_COMMENT_LENGTH = 10000;
 export const DEFAULT_WEBHOOK_PATH = '/api/webhook';
-export const SERVER_NAME = 'pro-ui-feedbacks-mcp';
+export const SERVER_NAME = 'gosnap-mcp';
 export const SERVER_VERSION = '0.1.0';

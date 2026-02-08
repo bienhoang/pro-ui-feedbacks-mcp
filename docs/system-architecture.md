@@ -1,6 +1,6 @@
 # System Architecture
 
-**pro-ui-feedbacks-mcp v0.1.0**
+**gosnap-mcp v0.1.0**
 
 ---
 
@@ -22,7 +22,7 @@
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              pro-ui-feedbacks-mcp Server                     │
+│              gosnap-mcp Server                               │
 │                                                              │
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │   HTTP Server (Node.js http)                         │  │
@@ -397,7 +397,7 @@ export function register{ToolName}(server: McpServer, store: Store): void {
 1. Enumerate known agents + their config paths
 2. Check if each agent config dir exists
 3. Read existing config or start fresh
-4. Merge MCP entry `pro-ui-feedbacks` into `mcpServers` object
+4. Merge MCP entry `gosnap` into `mcpServers` object
 5. Write updated JSON to disk
 6. Report results (which agents configured)
 
@@ -410,9 +410,9 @@ export function register{ToolName}(server: McpServer, store: Store): void {
 **Entry format:**
 ```json
 {
-  "pro-ui-feedbacks": {
+  "gosnap": {
     "command": "npx",
-    "args": ["pro-ui-feedbacks-mcp"]
+    "args": ["gosnap-mcp"]
   }
 }
 ```
@@ -470,7 +470,7 @@ export function register{ToolName}(server: McpServer, store: Store): void {
 
 **Library example:**
 ```typescript
-import { startServer } from 'pro-ui-feedbacks-mcp';
+import { startServer } from '@bienhoang/gosnap-mcp';
 
 await startServer({ port: 8080, mcpOnly: false });
 ```
@@ -760,8 +760,8 @@ store.on('feedback:resolved', (feedback) => {
 ### Packaging
 
 - **Format:** npm package (ESM)
-- **Entry:** `npx pro-ui-feedbacks-mcp` (from bin field)
-- **Library:** `import { startServer } from 'pro-ui-feedbacks-mcp'`
+- **Entry:** `npx gosnap-mcp` (from bin field)
+- **Library:** `import { startServer } from '@bienhoang/gosnap-mcp'`
 
 ### Scalability
 
