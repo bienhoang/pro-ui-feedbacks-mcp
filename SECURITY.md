@@ -18,4 +18,4 @@ We will respond within 48 hours and work on a fix promptly.
 
 ## Scope
 
-This policy applies to the `@bienhoang/gosnap-mcp` npm package and its HTTP API server.
+This policy applies to the `gosnap-mcp` npm package and its HTTP API server.

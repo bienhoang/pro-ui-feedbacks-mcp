@@ -471,7 +471,7 @@ export async function startServer(options: ServerOptions = {}): Promise<void>
 **Library usage:**
 
 ```typescript
-import { startServer } from '@bienhoang/gosnap-mcp';
+import { startServer } from 'gosnap-mcp';
 
 await startServer({ port: 8080, mcpOnly: false });
 ```
@@ -484,7 +484,7 @@ await startServer({ port: 8080, mcpOnly: false });
 
 ```json
 {
-  "name": "@bienhoang/gosnap-mcp",
+  "name": "gosnap-mcp",
   "version": "0.1.0",
   "type": "module",                    // ESM only
   "bin": {
@@ -649,7 +649,7 @@ curl -X POST http://127.0.0.1:4747/api/feedback \
 ### Using as library
 
 ```typescript
-import { startServer } from '@bienhoang/gosnap-mcp';
+import { startServer } from 'gosnap-mcp';
 
 await startServer({ port: 4747, mcpOnly: false });
 ```

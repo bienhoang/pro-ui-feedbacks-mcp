@@ -17,7 +17,7 @@ This starts both:
 ## Installation
 
 ```bash
-npm install -g @bienhoang/gosnap-mcp
+npm install -g gosnap-mcp
 ```
 
 ## Agent Configuration
@@ -99,7 +99,7 @@ curl -X POST http://127.0.0.1:4747/api/feedback \
 ## Programmatic Usage
 
 ```typescript
-import { startServer } from '@bienhoang/gosnap-mcp';
+import { startServer } from 'gosnap-mcp';
 
 await startServer({ port: 4747, mcpOnly: false });
 ```

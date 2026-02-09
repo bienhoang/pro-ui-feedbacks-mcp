@@ -470,7 +470,7 @@ export function register{ToolName}(server: McpServer, store: Store): void {
 
 **Library example:**
 ```typescript
-import { startServer } from '@bienhoang/gosnap-mcp';
+import { startServer } from 'gosnap-mcp';
 
 await startServer({ port: 8080, mcpOnly: false });
 ```
@@ -761,7 +761,7 @@ store.on('feedback:resolved', (feedback) => {
 
 - **Format:** npm package (ESM)
 - **Entry:** `npx gosnap-mcp` (from bin field)
-- **Library:** `import { startServer } from '@bienhoang/gosnap-mcp'`
+- **Library:** `import { startServer } from 'gosnap-mcp'`
 
 ### Scalability
 

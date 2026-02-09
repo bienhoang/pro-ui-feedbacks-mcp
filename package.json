@@ -1,5 +1,5 @@
 {
-  "name": "@bienhoang/gosnap-mcp",
+  "name": "gosnap-mcp",
   "version": "0.1.0",
   "description": "MCP server for UI feedback processing by AI agents",
   "type": "module",
